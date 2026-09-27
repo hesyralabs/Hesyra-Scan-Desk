@@ -1,0 +1,29 @@
+{
+  "name": "hesyra-scan-desk",
+  "version": "1.0.0",
+  "description": "Hesyra Dental Labs - Field Scan Desk & 48-Hour Delivery SLA Ledger",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "dental",
+    "scan-desk",
+    "cad-cam",
+    "hesyra",
+    "billing"
+  ],
+  "author": "Hesyra Dental Labs",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "multer": "^2.4.0"
+  }
+}

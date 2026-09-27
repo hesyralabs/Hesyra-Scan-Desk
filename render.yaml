@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: hesyra-scan-desk
+    env: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: COMPANY_NAME
+        value: Hesyra Dental Labs

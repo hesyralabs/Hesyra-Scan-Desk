@@ -1,0 +1,13 @@
+node_modules/
+cloudflared.exe
+orders.db
+orders.db-shm
+orders.db-wal
+.env
+.DS_Store
+Thumbs.db
+*.tmp
+uploads/*
+!uploads/.gitkeep
+google_drive_sync/
+scratch/

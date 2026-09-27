@@ -1,0 +1,716 @@
+/* ==========================================================================
+   CHAIRSIDE FIELD SCANNER - CLEAN, MINIMALIST, PROFESSIONAL STYLES
+   ========================================================================== */
+
+.scanner-view-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0.5rem 0.75rem 2rem;
+}
+
+/* 48h SLA Strip */
+.sla-strip {
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 0.85rem 1.15rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+  border-left: 4px solid #38bdf8;
+}
+
+.sla-strip-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sla-icon {
+  font-size: 1.35rem;
+}
+
+.sla-strip-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.sla-strip-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+.sla-strip-tag {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Clean Form Card */
+.form-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.card-head-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.section-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0d9488;
+}
+
+.step-num-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #ecfdf5;
+  color: #047857;
+  font-weight: 800;
+  font-size: 0.8rem;
+  border-radius: 6px;
+}
+
+.section-badge-mandatory {
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-left: 0.35rem;
+}
+
+.btn-text-action {
+  background: none;
+  border: none;
+  color: #0284c7;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.btn-text-action:hover {
+  background: #f0f9ff;
+  color: #0369a1;
+}
+
+/* Fields & Layout */
+.form-field {
+  margin-bottom: 0.75rem;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+.field-label .req {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+.field-label .opt {
+  font-weight: 400;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* Selected Clinic Preview Bar */
+.clinic-selected-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #0d9488;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.clinic-preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #0f172a;
+  margin-bottom: 0.2rem;
+}
+
+.clinic-preview-doc {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.clinic-preview-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  gap: 1rem;
+}
+
+/* Section 04 Line Item Card (Matching user screenshot) */
+.line-item-card {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-left: 4px solid #0d9488;
+  border-radius: 10px;
+  padding: 0.95rem 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.line-item-row-top {
+  display: grid;
+  grid-template-columns: 1.8fr 2.6fr 90px;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: start;
+}
+
+.line-item-row-bottom.crown-mode {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 2.6fr 40px;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.line-item-row-bottom.aligner-mode {
+  display: grid;
+  grid-template-columns: 1.5fr 3.5fr 40px;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.item-field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.3rem;
+}
+
+.item-field-label .required {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+.tooth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tooth-input-wrap .item-teeth {
+  padding-right: 38px;
+}
+
+.btn-tooth-picker-icon {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.15rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.btn-tooth-picker-icon:hover {
+  background: #f1f5f9;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.btn-delete-line-item {
+  width: 40px;
+  height: 38px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-delete-line-item:hover {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.btn-add-item {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  color: #0d9488;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s;
+}
+
+.btn-add-item:hover {
+  background: #0d9488;
+  color: #ffffff;
+  border-color: #0d9488;
+}
+
+.shortcut-hint {
+  font-size: 0.68rem;
+  color: #0d9488;
+  background: rgba(13, 148, 136, 0.12);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.btn-add-item:hover .shortcut-hint {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Photo Upload Zone */
+.photo-upload-zone {
+  margin-bottom: 0.75rem;
+}
+
+.btn-upload-photos {
+  width: 100%;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  color: #334155;
+  transition: all 0.15s;
+}
+
+.btn-upload-photos:hover {
+  border-color: #0d9488;
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.photos-preview-strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.25rem 0;
+  min-height: 50px;
+}
+
+.photo-preview-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  flex-shrink: 0;
+}
+
+.photo-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  background: rgba(220, 38, 38, 0.9);
+  color: #fff;
+  border-radius: 50%;
+  border: none;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sticky Submit Dock (Chairside floating bar) */
+.sticky-submit-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid #e2e8f0;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  z-index: 40;
+}
+
+.dock-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dock-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dock-icon {
+  font-size: 1.25rem;
+}
+
+.dock-title {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.dock-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.dock-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-dock-copy {
+  background: #f0fdfa;
+  border: 1.5px solid #0d9488;
+  color: #0d9488;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.btn-dock-copy:hover {
+  background: #0d9488;
+  color: #ffffff;
+}
+
+.btn-dock-submit {
+  background: #0f172a;
+  border: none;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+  transition: all 0.15s;
+}
+
+.btn-dock-submit:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+/* Success Card Modal */
+.success-check-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 1.5rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
+}
+
+.success-order-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.success-patient {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #334155;
+  margin-top: 2px;
+}
+
+.success-clinic {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.success-sla-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin: 1rem 0;
+}
+
+.sla-box-title {
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #166534;
+}
+
+.sla-box-sub {
+  font-size: 0.75rem;
+  color: #15803d;
+  margin-top: 2px;
+}
+
+/* 1-Click Billing Box in Success Modal */
+.billing-copy-card {
+  background: #f8fafc;
+  border: 1.5px dashed #0d9488;
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+  margin-bottom: 0.85rem;
+}
+
+.billing-copy-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.btn-copy-chip {
+  background: #0d9488;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border: none;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-copy-chip:hover {
+  background: #0f766e;
+}
+
+.billing-preview-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  background: #ffffff;
+  padding: 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  margin: 0;
+  line-height: 1.4;
+  color: #0f172a;
+}
+
+.billing-copy-hint {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 0.35rem;
+}
+
+.whatsapp-share-card {
+  margin-bottom: 0.5rem;
+}
+
+.btn-whatsapp {
+  background: #25d366;
+  color: #ffffff;
+}
+
+.btn-whatsapp:hover {
+  background: #1eb855;
+}
+
+/* Billing Quick Copy Modal */
+.copied-banner {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+  color: #065f46;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.billing-modal-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  margin: 0;
+  line-height: 1.45;
+  color: #0f172a;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 680px) {
+  .line-item-row-top {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .line-item-row-bottom.crown-mode {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .line-item-row-bottom.aligner-mode {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .col-note {
+    grid-column: 1 / -1;
+  }
+  .col-delete {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .dock-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .dock-info {
+    justify-content: center;
+  }
+  .dock-buttons {
+    width: 100%;
+  }
+  .btn-dock-copy,
+  .btn-dock-submit {
+    flex: 1;
+    justify-content: center;
+  }
+}

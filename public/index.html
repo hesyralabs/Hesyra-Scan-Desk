@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Hesyra Scan Desk | Chairside Case Intake & 48h SLA</title>
+  <meta name="description" content="Chairside digital dental case enrollment and 48-hour delivery countdown ledger for Hesyra Dental Labs">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/mobile-form.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+  <!-- APP NAVIGATION HEADER -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-badge">H</div>
+        <div class="brand-text">
+          <span class="brand-title">Hesyra</span>
+          <span class="brand-sub">Scan Desk</span>
+        </div>
+      </div>
+
+      <!-- Segmented View Switcher -->
+      <nav class="nav-segmented" role="tablist">
+        <button type="button" class="nav-segment active" data-view="scanner" role="tab">
+          <span class="nav-icon">⚡</span>
+          <span>Field Scanner</span>
+        </button>
+        <button type="button" class="nav-segment" data-view="dashboard" role="tab">
+          <span class="nav-icon">⏱</span>
+          <span>Lab Ledger &amp; 48h SLA</span>
+        </button>
+      </nav>
+
+      <div class="header-status">
+        <button type="button" class="gdrive-header-badge" id="btn-header-gdrive" title="Google Drive Live Connected (G:\My Drive\Hesyra Invoices)">
+          <span class="gdrive-icon">☁️</span>
+          <span class="gdrive-text" id="header-gdrive-text">GDrive Active</span>
+          <span class="gdrive-dot" id="header-gdrive-dot"></span>
+        </button>
+        <div class="status-pill" id="connection-status-pill">
+          <span class="status-dot"></span>
+          <span>Online</span>
+        </div>
+        <div class="hub-pill">Nagpur Central Lab</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="app-main">
+
+    <!-- VIEW 1: FIELD SCANNER (CHAIRSIDE CASE INTAKE) -->
+    <div id="view-scanner" class="scanner-view-container">
+
+      <!-- Compact 48h SLA Banner -->
+      <div class="sla-strip">
+        <div class="sla-strip-left">
+          <span class="sla-icon">⏱</span>
+          <div>
+            <div class="sla-strip-title">48-Hour Delivery Commitment</div>
+            <div class="sla-strip-sub">Every enrolled crown case automatically triggers a 48h delivery deadline</div>
+          </div>
+        </div>
+        <span class="sla-strip-tag">48h SLA Active</span>
+      </div>
+
+      <form id="field-order-form" autocomplete="off">
+
+        <!-- 1. CLINIC SELECTION -->
+        <div class="form-card">
+          <div class="card-head">
+            <div class="card-head-title">
+              <span class="section-dot"></span>
+              <span>Clinic &amp; Doctor</span>
+            </div>
+            <button type="button" class="btn-text-action" id="btn-open-register-clinic">
+              + Register New Clinic
+            </button>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="select-clinic">Select Clinic / Doctor <span class="req">*</span></label>
+            <select class="form-select" id="select-clinic" required>
+              <option value="">Loading registered clinics...</option>
+            </select>
+          </div>
+
+          <!-- Selected Clinic Details Bar -->
+          <div class="clinic-selected-box" id="selected-clinic-preview" style="display: none;">
+            <div class="clinic-preview-row">
+              <strong id="preview-clinic-name">Clinic Name</strong>
+              <span class="clinic-preview-doc">Doctor: <strong id="preview-doc-name">Dr. Name</strong></span>
+            </div>
+            <div class="clinic-preview-meta">
+              <span>📞 <span id="preview-phone">+91 00000 00000</span></span>
+              <span>📍 <span id="preview-address">Address, City</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. PATIENT DETAILS -->
+        <div class="form-card">
+          <div class="card-head">
+            <div class="card-head-title">
+              <span class="section-dot"></span>
+              <span>Patient Details</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="input-patient-name">Patient Name <span class="req">*</span></label>
+            <input type="text" class="form-input" id="input-patient-name" placeholder="Patient's Full Name" required>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label class="field-label" for="input-patient-age">Age (Years) <span class="req">*</span></label>
+              <input type="number" class="form-input" id="input-patient-age" placeholder="e.g. 35" min="1" max="115" required>
+            </div>
+            <div class="form-field">
+              <label class="field-label" for="input-patient-sex">Gender <span class="req">*</span></label>
+              <select class="form-select" id="input-patient-sex" required>
+                <option value="">— Select —</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label class="field-label" for="input-consultant-doctor">Consulting / Treating Doctor <span class="opt">(Optional)</span></label>
+              <input type="text" class="form-input" id="input-consultant-doctor" placeholder="e.g. Dr. Latika Kothari">
+            </div>
+            <div class="form-field">
+              <label class="field-label" for="input-consultant-phone">Doctor Contact Phone <span class="opt">(Optional)</span></label>
+              <input type="tel" class="form-input" id="input-consultant-phone" placeholder="Mobile / WhatsApp">
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. FABRICATION WORK & ALIGNERS -->
+        <div class="form-card" style="border-left: 4px solid #0d9488;">
+          <div class="card-head">
+            <div class="card-head-title">
+              <span class="step-num-badge">04</span>
+              <span>FABRICATION WORK &amp; ALIGNERS</span>
+              <span class="section-badge-mandatory">AT LEAST 1 ITEM</span>
+            </div>
+            <button type="button" class="btn-add-item" id="btn-add-line-item">
+              <span>+ Add Line Item</span>
+              <span class="shortcut-hint">Alt+N</span>
+            </button>
+          </div>
+
+          <!-- Dynamic Line Items Container -->
+          <div id="line-items-container"></div>
+        </div>
+
+        <!-- 4. SCAN LINK & CLINICAL INSTRUCTIONS -->
+        <div class="form-card">
+          <div class="card-head">
+            <div class="card-head-title">
+              <span class="section-dot"></span>
+              <span>Case Attachments &amp; Instructions</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="input-scan-link">Scan Cloud Folder / Drive Link <span class="opt">(Optional)</span></label>
+            <input type="url" class="form-input" id="input-scan-link" placeholder="Paste Medit Link, Google Drive, or cloud folder URL...">
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="input-clinical-notes">Clinical Notes &amp; Delivery Instructions <span class="opt">(Optional)</span></label>
+            <textarea class="form-textarea" id="input-clinical-notes" rows="2" placeholder="Special shade note, prep margin instructions, remake reference..."></textarea>
+          </div>
+
+          <!-- Clean Single Camera / File Button -->
+          <input type="file" id="cam-prep-input" accept="image/*" capture="environment" style="display: none;">
+          <input type="file" id="cam-shade-input" accept="image/*" capture="environment" style="display: none;">
+          <input type="file" id="cam-rx-input" accept="image/*" capture="environment" style="display: none;">
+
+          <div class="photo-upload-zone">
+            <button type="button" class="btn-upload-photos" id="btn-cam-prep">
+              <span style="font-size: 1.3rem;">📷</span>
+              <div>
+                <strong>Attach Rx Slip, Prep, or Shade Photos</strong>
+                <div style="font-size: 0.75rem; color: #64748b;">Tap to take a photo or select from gallery</div>
+              </div>
+            </button>
+          </div>
+
+          <!-- Uploaded Photos Strip -->
+          <div class="photos-preview-strip" id="photos-preview-strip">
+            <span style="font-size: 0.8rem; color: var(--text-subtle);">No photos attached yet</span>
+          </div>
+        </div>
+
+        <div style="height: 90px;"></div>
+      </form>
+
+      <!-- STICKY ACTION DOCK -->
+      <div class="sticky-submit-dock">
+        <div class="dock-inner">
+          <div class="dock-info">
+            <span class="dock-icon">⏱</span>
+            <div>
+              <div class="dock-title">48h Delivery SLA</div>
+              <div class="dock-sub">Auto-countdown on submit</div>
+            </div>
+          </div>
+          <div class="dock-buttons">
+            <button type="button" class="btn-dock-copy" id="btn-copy-billing-form" onclick="copyBillingTextToClipboard()" title="Copy patient and case text formatted for 1-click billing intake">
+              <span>📋</span>
+              <span>Copy Billing Text</span>
+            </button>
+            <button type="button" class="btn-dock-submit" id="btn-submit-order" onclick="document.getElementById('field-order-form').dispatchEvent(new Event('submit', { cancelable: true }))">
+              <span>⚡</span>
+              <span>Enroll Case (48h Timer)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: LAB LEDGER & 48h SLA TRACKER -->
+    <div id="view-dashboard" class="dashboard-view-container" style="display: none;">
+
+      <!-- Metric KPI Strip -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background: #e0f2fe; color: #0284c7;">📦</div>
+          <div>
+            <div class="stat-number" id="stat-total-cases">0</div>
+            <div class="stat-title">Total Enrolled Cases</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background: #fee2e2; color: #dc2626;">⏱</div>
+          <div>
+            <div class="stat-number" id="stat-sla-urgent">0</div>
+            <div class="stat-title">SLA Critical (&lt; 12h Left)</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background: #fef3c7; color: #d97706;">⚙️</div>
+          <div>
+            <div class="stat-number" id="stat-active-cases">0</div>
+            <div class="stat-title">Active In Production</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background: #dcfce7; color: #16a34a;">🚚</div>
+          <div>
+            <div class="stat-number" id="stat-dispatched-today">0</div>
+            <div class="stat-title">Dispatched / Delivered</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbar & Filters -->
+      <div class="ledger-toolbar-card">
+        <div class="toolbar-search-row">
+          <div class="search-wrap">
+            <span class="search-magnifier">🔍</span>
+            <input type="text" class="search-input" id="dashboard-search-input" placeholder="Search by patient, clinic, doctor, or Order ID...">
+          </div>
+
+          <div class="toolbar-btn-group">
+            <button type="button" class="btn btn-gdrive" id="btn-sync-gdrive" title="Sync live orders to Google Drive Master Billing Excel">
+              <span>☁️</span>
+              <span id="btn-sync-gdrive-text">Sync Google Drive</span>
+            </button>
+            <button type="button" class="btn btn-excel" id="btn-export-excel">
+              <span>📊</span>
+              <span>Export Excel (.xlsx)</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-open-google-settings">
+              <span>☁️</span>
+              <span>Google Sheets Sync</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="btn-quick-new-scan">
+              <span>+</span>
+              <span>New Scan</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar-filter-row">
+          <div class="filter-controls">
+            <span class="filter-label">Filters:</span>
+            <select class="filter-select" id="filter-date">
+              <option value="all">📅 All Dates</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="last7">Last 7 Days</option>
+              <option value="thisMonth">This Month</option>
+            </select>
+
+            <select class="filter-select" id="filter-status">
+              <option value="all">Stage: All Stages</option>
+              <option value="Scanned">Scanned</option>
+              <option value="In CAD">In CAD</option>
+              <option value="In Milling">In Milling</option>
+              <option value="Sintering/Glaze">Sintering/Glaze</option>
+              <option value="QC Passed">QC Passed</option>
+              <option value="Dispatched">Dispatched</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
+
+          <span class="table-count-label" id="table-results-count">Loading...</span>
+        </div>
+      </div>
+
+      <!-- Google Drive Sync Status Banner -->
+      <div class="gdrive-banner" id="gdrive-sync-banner">
+        <div class="gdrive-banner-left">
+          <span class="gdrive-banner-dot" id="gdrive-banner-dot"></span>
+          <div>
+            <div class="gdrive-banner-title">
+              <strong>Google Drive Sync:</strong>
+              <span id="gdrive-target-name">Hesyra_Master_Billing.xlsx &amp; Hesyra_Field_Scan_Orders.xlsx</span>
+            </div>
+            <div class="gdrive-banner-sub" id="gdrive-path-label">
+              Folder: G:\My Drive\Hesyra Invoices
+            </div>
+          </div>
+        </div>
+        <div class="gdrive-banner-right">
+          <span class="gdrive-last-sync-time" id="gdrive-last-sync-label">Last synced: Just now</span>
+          <button type="button" class="btn-gdrive-sync-now" id="btn-gdrive-sync-now" title="Force sync to Google Drive">
+            <span class="sync-icon" id="sync-icon-spin">🔄</span>
+            <span>Sync Now</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ledger Table -->
+      <div class="ledger-table-card">
+        <div class="table-responsive">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Order ID &amp; Scan Time</th>
+                <th>48h Delivery SLA Timer</th>
+                <th>Clinic &amp; Primary Doctor</th>
+                <th>Patient Details</th>
+                <th>Fabrication Work</th>
+                <th>Production Stage</th>
+                <th>Field Tech</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: REGISTER NEW CLINIC -->
+  <div class="modal-overlay" id="register-clinic-modal">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <div>
+          <h2 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Register New Clinic</h2>
+          <div style="font-size: 0.78rem; color: #64748b;">Add clinic &amp; doctor profile</div>
+        </div>
+        <button type="button" class="btn-close">&times;</button>
+      </div>
+
+      <form id="register-clinic-form">
+        <div class="modal-body" style="padding: 1rem 1.25rem;">
+          <div class="form-field" style="margin-bottom: 0.75rem;">
+            <label class="field-label" for="reg-clinic-name">Clinic / Hospital Name <span class="req">*</span></label>
+            <input type="text" class="form-input" id="reg-clinic-name" placeholder="e.g. Apex Dental Hospital" required>
+          </div>
+
+          <div class="form-grid-2" style="margin-bottom: 0.75rem;">
+            <div class="form-field">
+              <label class="field-label" for="reg-primary-doctor">Primary Doctor Name <span class="req">*</span></label>
+              <input type="text" class="form-input" id="reg-primary-doctor" placeholder="e.g. Dr. Rajesh Sharma" required>
+            </div>
+            <div class="form-field">
+              <label class="field-label" for="reg-phone">Clinic Phone / WhatsApp <span class="req">*</span></label>
+              <input type="tel" class="form-input" id="reg-phone" placeholder="10-digit mobile" required>
+            </div>
+          </div>
+
+          <div class="form-field" style="margin-bottom: 0.75rem;">
+            <label class="field-label" for="reg-partner-doctors">Partner / Associate Doctors <span class="opt">(Optional)</span></label>
+            <input type="text" class="form-input" id="reg-partner-doctors" placeholder="e.g. Dr. Priya Sharma (Prosthodontist)">
+          </div>
+
+          <div class="form-field" style="margin-bottom: 0.75rem;">
+            <label class="field-label" for="reg-address">Clinic Street Address</label>
+            <input type="text" class="form-input" id="reg-address" placeholder="Street, landmark, locality">
+          </div>
+
+          <div class="form-grid-2" style="margin-bottom: 0.75rem;">
+            <div class="form-field">
+              <label class="field-label" for="reg-city">City</label>
+              <input type="text" class="form-input" id="reg-city" value="Nagpur">
+            </div>
+            <div class="form-field">
+              <label class="field-label" for="reg-pincode">PIN Code</label>
+              <input type="text" class="form-input" id="reg-pincode" placeholder="e.g. 440010">
+            </div>
+          </div>
+
+          <div class="form-grid-2" style="margin-bottom: 0.75rem;">
+            <div class="form-field">
+              <label class="field-label" for="reg-state">State</label>
+              <select class="form-select" id="reg-state">
+                <option value="Maharashtra" selected>Maharashtra</option>
+                <option value="Tamil Nadu">Tamil Nadu</option>
+                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Telangana">Telangana</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="field-label" for="reg-gstin">GSTIN <span class="opt">(Optional)</span></label>
+              <input type="text" class="form-input" id="reg-gstin" placeholder="Optional GST number">
+            </div>
+          </div>
+
+          <input type="hidden" id="reg-email" value="">
+          <input type="hidden" id="reg-credit-days" value="15">
+          <input type="hidden" id="reg-internal-notes" value="">
+        </div>
+
+        <div class="modal-footer" style="padding: 0.75rem 1.25rem;">
+          <button type="button" class="btn btn-secondary btn-modal-dismiss">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-clinic">Save Clinic</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ORDER SUCCESS WITH 1-CLICK BILLING COPY -->
+  <div class="modal-overlay" id="order-success-modal">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-body success-card" style="padding: 1.5rem; text-align: center;">
+        <div class="success-check-badge">✓</div>
+        <div class="success-order-id" id="success-order-id">HS-260927-001</div>
+        <div class="success-patient" id="success-patient-name">Patient Name</div>
+        <div class="success-clinic" id="success-clinic-doc">Clinic • Doctor</div>
+
+        <div class="success-sla-box">
+          <div class="sla-box-title" id="success-deadline-text">Promised 48h Delivery Deadline</div>
+          <div class="sla-box-sub">Ticking live countdown is active in the Central Lab Ledger</div>
+        </div>
+
+        <!-- 1-Click Billing Text Box -->
+        <div class="billing-copy-card">
+          <div class="billing-copy-head">
+            <span style="font-weight: 700; font-size: 0.82rem; color: #0f172a;">⚡ 1-Click Billing Intake Text</span>
+            <button type="button" class="btn-copy-chip" id="btn-copy-billing-success">
+              📋 Copy Text
+            </button>
+          </div>
+          <pre id="billing-text-preview" class="billing-preview-code"></pre>
+          <div class="billing-copy-hint">💡 Paste directly into 'Smart WhatsApp &amp; Order Intake' in your billing system.</div>
+        </div>
+
+        <div class="whatsapp-share-card">
+          <a href="#" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp btn-full" id="btn-whatsapp-share">
+            <span>💬</span>
+            <span>Send WhatsApp Confirmation Slip to Doctor</span>
+          </a>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-full btn-lg" onclick="resetFormForNextCase()" style="margin-top: 0.75rem;">
+          <span>+ Enroll Next Case</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BILLING TEXT PREVIEW & QUICK COPY -->
+  <div class="modal-overlay" id="billing-copy-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">📋 Smart Billing Intake Text</h3>
+          <div style="font-size: 0.78rem; color: #64748b;">Formatted for 1-Click Autofill in Hesyra Billing System</div>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-billing-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1rem 1.25rem;">
+        <div class="copied-banner">
+          <span>✅</span>
+          <strong>Copied to clipboard! Ready to paste into Smart WhatsApp Intake.</strong>
+        </div>
+        <pre id="modal-billing-text-content" class="billing-modal-code"></pre>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem;">
+        <span style="font-size: 0.75rem; color: #64748b;">Pattern matches Smart WhatsApp Intake</span>
+        <button type="button" class="btn btn-primary" id="btn-modal-re-copy" style="background: #0d9488; border-color: #0d9488;">
+          📋 Copy Again
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FDI TOOTH CHART SELECTOR -->
+  <div class="modal-overlay" id="tooth-picker-modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">🦷 FDI Tooth Chart Selector</h3>
+          <div style="font-size: 0.78rem; color: #64748b;">Tap teeth to mark numbers for this line item</div>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-tooth-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1rem 1.25rem;">
+        <div id="modal-tooth-chart-container"></div>
+        <div class="tooth-selected-preview">
+          <span style="color: #64748b; font-weight: 600;">Selected Teeth: </span>
+          <strong id="modal-selected-teeth-text" style="color: #0d9488;">None</strong>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 0.75rem 1.25rem;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-tooth-modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-apply-tooth-modal" style="background: #0d9488; border-color: #0d9488;">Apply Teeth</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CASE DETAILS -->
+  <div class="modal-overlay" id="order-detail-modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="card-title" id="detail-modal-title">Case Details</h3>
+        <button type="button" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body" id="detail-modal-body" style="padding: 1.25rem;"></div>
+      <div class="modal-footer" style="padding: 0.75rem 1.25rem;">
+        <button type="button" class="btn btn-secondary btn-modal-dismiss">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GOOGLE SHEETS SYNC -->
+  <div class="modal-overlay" id="google-settings-modal">
+    <div class="modal-content" style="max-width: 560px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">☁️ Google Sheets Auto-Sync</h3>
+          <div style="font-size: 0.78rem; color: #64748b;">Real-time case row appending via Apps Script Webhook</div>
+        </div>
+        <button type="button" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.25rem;">
+        <div class="form-field" style="margin-bottom: 1rem;">
+          <label class="field-label" for="input-google-webhook">Apps Script Webhook URL</label>
+          <input type="url" class="form-input" id="input-google-webhook" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <div style="display: flex; gap: 0.6rem; margin-bottom: 1.25rem;">
+          <button type="button" class="btn btn-secondary" id="btn-test-google-sync">Test Connection</button>
+          <button type="button" class="btn btn-primary" id="btn-save-google-settings">Save Webhook</button>
+        </div>
+        <div class="code-snippet-box">
+          <button type="button" class="btn-copy-code" id="btn-copy-script">Copy Apps Script</button>
+          <pre id="google-script-code">Loading script...</pre>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 0.75rem 1.25rem;">
+        <button type="button" class="btn btn-secondary btn-modal-dismiss">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATALIST FOR SHADES -->
+  <datalist id="shade-suggestions-list">
+    <option value="A1">
+    <option value="A2">
+    <option value="A3">
+    <option value="A3.5">
+    <option value="A4">
+    <option value="B1">
+    <option value="B2">
+    <option value="B3">
+    <option value="B4">
+    <option value="C1">
+    <option value="C2">
+    <option value="C3">
+    <option value="C4">
+    <option value="D2">
+    <option value="D3">
+    <option value="D4">
+    <option value="BL1">
+    <option value="BL2">
+    <option value="BL3">
+    <option value="BL4">
+  </datalist>
+
+  <div id="print-ticket-area" style="display: none;"></div>
+  <div id="toast-container"></div>
+
+  <!-- SCRIPTS -->
+  <script src="js/toothChart.js"></script>
+  <script src="js/fieldForm.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
