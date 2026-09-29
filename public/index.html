@@ -8,10 +8,11 @@
   <meta name="theme-color" content="#0f172a">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/mobile-form.css">
   <link rel="stylesheet" href="css/dashboard.css">
+  <script src="js/lucide.min.js"></script>
 </head>
 <body>
 
@@ -19,39 +20,116 @@
   <header class="app-header">
     <div class="header-container">
       <div class="brand-group">
-        <div class="brand-badge">H</div>
+        <div class="brand-logo-ring">
+          <img src="logo.png" alt="Hesyra Logo" class="brand-logo-img">
+        </div>
         <div class="brand-text">
-          <span class="brand-title">Hesyra</span>
-          <span class="brand-sub">Scan Desk</span>
+          <span class="logo-text">HESYRA <span class="logo-bold">SCAN DESK</span></span>
+          <span class="brand-sub">48h Central Lab Operations</span>
         </div>
       </div>
 
       <!-- Segmented View Switcher -->
       <nav class="nav-segmented" role="tablist">
-        <button type="button" class="nav-segment active" data-view="scanner" role="tab">
-          <span class="nav-icon">⚡</span>
+        <button type="button" class="nav-segment active" id="nav-btn-scanner" data-view="scanner" role="tab">
+          <i data-lucide="scan-line"></i>
           <span>Field Scanner</span>
         </button>
-        <button type="button" class="nav-segment" data-view="dashboard" role="tab">
-          <span class="nav-icon">⏱</span>
+        <button type="button" class="nav-segment" id="nav-btn-dashboard" data-view="dashboard" role="tab">
+          <i data-lucide="layout-dashboard"></i>
           <span>Lab Ledger &amp; 48h SLA</span>
         </button>
       </nav>
 
       <div class="header-status">
-        <button type="button" class="gdrive-header-badge" id="btn-header-gdrive" title="Google Drive Live Connected (G:\My Drive\Hesyra Invoices)">
-          <span class="gdrive-icon">☁️</span>
+        <button type="button" class="gdrive-header-badge admin-only" id="btn-header-gdrive" title="Google Drive Live Connected">
+          <i data-lucide="cloud"></i>
           <span class="gdrive-text" id="header-gdrive-text">GDrive Active</span>
           <span class="gdrive-dot" id="header-gdrive-dot"></span>
+        </button>
+                <div class="user-profile-badge" id="header-user-badge" style="display: none;">
+          <span class="user-avatar-circle" id="header-user-avatar">A</span>
+          <span class="user-name-text" id="header-user-name">Staff</span>
+          <span class="user-role-tag" id="header-user-role">Admin</span>
+        </div>
+        <button type="button" class="btn-logout" id="btn-header-logout" title="Sign out" style="display: none;">
+          <i data-lucide="log-out"></i>
+          <span>Sign Out</span>
         </button>
         <div class="status-pill" id="connection-status-pill">
           <span class="status-dot"></span>
           <span>Online</span>
         </div>
-        <div class="hub-pill">Nagpur Central Lab</div>
+        <div class="hub-pill" id="hub-pill-text">Nagpur Central Lab</div>
       </div>
     </div>
   </header>
+
+  <!-- LOGIN & ACCESS CONTROL SCREEN -->
+  <div id="login-screen" class="login-overlay">
+    <!-- Ambient background effects matching Hesyra Portal -->
+    <div class="login-orb orb1"></div>
+    <div class="login-orb orb2"></div>
+    <div class="login-grid-overlay"></div>
+
+    <div class="login-card">
+      <!-- Brand -->
+      <div class="login-brand">
+        <div class="login-logo-ring">
+          <img src="logo.png" alt="Hesyra Logo" class="login-logo-img">
+        </div>
+        <div class="login-brand-info">
+          <div class="login-brand-name">HESYRA <span class="logo-bold">SCAN DESK</span></div>
+          <div class="login-brand-sub">Dental Lab Operations &amp; 48h SLA</div>
+        </div>
+      </div>
+
+      <!-- Heading -->
+      <div class="login-heading">
+        <h1 class="login-heading-title">Welcome back</h1>
+        <p class="login-heading-subtitle">Sign in to your staff portal to continue</p>
+      </div>
+
+      <div id="login-error" class="login-error-alert" style="display: none;"></div>
+
+      <form id="login-form" autocomplete="on">
+        <div class="form-field" style="margin-bottom: 1.15rem;">
+          <label class="field-label" for="login-username">Staff Username <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i data-lucide="user" class="input-icon"></i>
+            <input type="text" id="login-username" class="form-input with-icon" placeholder="Enter username" required autocomplete="username" autofocus>
+          </div>
+        </div>
+
+        <div class="form-field" style="margin-bottom: 0.75rem;">
+          <label class="field-label" for="login-password">Password <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <i data-lucide="lock" class="input-icon"></i>
+            <input type="password" id="login-password" class="form-input with-icon" placeholder="Enter password" required autocomplete="current-password">
+            <button type="button" class="btn-toggle-pwd" id="btn-toggle-pwd" title="Show/Hide password">
+              <i data-lucide="eye" id="toggle-pwd-icon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="login-options-row">
+          <label class="remember-label">
+            <input type="checkbox" id="login-remember" checked>
+            <span>Remember this device (30 days)</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-login btn-full" id="btn-submit-login">
+          <span id="btn-login-text">Sign In to Scan Desk</span>
+          <i data-lucide="arrow-right" style="margin-left: 6px;"></i>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        Hesyra Dental Labs &bull; Central Operations Facility
+      </div>
+    </div>
+  </div>
 
   <!-- MAIN APP CONTAINER -->
   <main class="app-main">
@@ -62,7 +140,7 @@
       <!-- Compact 48h SLA Banner -->
       <div class="sla-strip">
         <div class="sla-strip-left">
-          <span class="sla-icon">⏱</span>
+          <span class="sla-icon"><i data-lucide="clock-4"></i></span>
           <div>
             <div class="sla-strip-title">48-Hour Delivery Commitment</div>
             <div class="sla-strip-sub">Every enrolled crown case automatically triggers a 48h delivery deadline</div>
@@ -81,7 +159,7 @@
               <span>Clinic &amp; Doctor</span>
             </div>
             <button type="button" class="btn-text-action" id="btn-open-register-clinic">
-              + Register New Clinic
+              <i data-lucide="plus"></i> Register New Clinic
             </button>
           </div>
 
@@ -99,8 +177,8 @@
               <span class="clinic-preview-doc">Doctor: <strong id="preview-doc-name">Dr. Name</strong></span>
             </div>
             <div class="clinic-preview-meta">
-              <span>📞 <span id="preview-phone">+91 00000 00000</span></span>
-              <span>📍 <span id="preview-address">Address, City</span></span>
+              <span><i data-lucide="phone" class="lucide-xs"></i> <span id="preview-phone">+91 00000 00000</span></span>
+              <span><i data-lucide="map-pin" class="lucide-xs"></i> <span id="preview-address">Address, City</span></span>
             </div>
           </div>
         </div>
@@ -156,8 +234,7 @@
               <span class="section-badge-mandatory">AT LEAST 1 ITEM</span>
             </div>
             <button type="button" class="btn-add-item" id="btn-add-line-item">
-              <span>+ Add Line Item</span>
-              <span class="shortcut-hint">Alt+N</span>
+              <i data-lucide="plus"></i> Add Tooth / Unit
             </button>
           </div>
 
@@ -191,7 +268,7 @@
 
           <div class="photo-upload-zone">
             <button type="button" class="btn-upload-photos" id="btn-cam-prep">
-              <span style="font-size: 1.3rem;">📷</span>
+              <i data-lucide="camera" class="lucide-xl" style="color: var(--brand-bioceramic, #7A9C96);"></i>
               <div>
                 <strong>Attach Rx Slip, Prep, or Shade Photos</strong>
                 <div style="font-size: 0.75rem; color: #64748b;">Tap to take a photo or select from gallery</div>
@@ -205,14 +282,14 @@
           </div>
         </div>
 
-        <div style="height: 90px;"></div>
+        <div class="form-bottom-spacer"></div>
       </form>
 
       <!-- STICKY ACTION DOCK -->
       <div class="sticky-submit-dock">
         <div class="dock-inner">
           <div class="dock-info">
-            <span class="dock-icon">⏱</span>
+            <span class="dock-icon"><i data-lucide="clock-4"></i></span>
             <div>
               <div class="dock-title">48h Delivery SLA</div>
               <div class="dock-sub">Auto-countdown on submit</div>
@@ -220,11 +297,11 @@
           </div>
           <div class="dock-buttons">
             <button type="button" class="btn-dock-copy" id="btn-copy-billing-form" onclick="copyBillingTextToClipboard()" title="Copy patient and case text formatted for 1-click billing intake">
-              <span>📋</span>
+              <i data-lucide="copy"></i>
               <span>Copy Billing Text</span>
             </button>
             <button type="button" class="btn-dock-submit" id="btn-submit-order" onclick="document.getElementById('field-order-form').dispatchEvent(new Event('submit', { cancelable: true }))">
-              <span>⚡</span>
+              <i data-lucide="send"></i>
               <span>Enroll Case (48h Timer)</span>
             </button>
           </div>
@@ -238,7 +315,7 @@
       <!-- Metric KPI Strip -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon-wrap" style="background: #e0f2fe; color: #0284c7;">📦</div>
+          <div class="stat-icon-wrap" style="background: #e0f2fe; color: #0284c7;"><i data-lucide="layers"></i></div>
           <div>
             <div class="stat-number" id="stat-total-cases">0</div>
             <div class="stat-title">Total Enrolled Cases</div>
@@ -246,7 +323,7 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon-wrap" style="background: #fee2e2; color: #dc2626;">⏱</div>
+          <div class="stat-icon-wrap" style="background: #fee2e2; color: #dc2626;"><i data-lucide="alert-triangle"></i></div>
           <div>
             <div class="stat-number" id="stat-sla-urgent">0</div>
             <div class="stat-title">SLA Critical (&lt; 12h Left)</div>
@@ -254,7 +331,7 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon-wrap" style="background: #fef3c7; color: #d97706;">⚙️</div>
+          <div class="stat-icon-wrap" style="background: #fef3c7; color: #d97706;"><i data-lucide="cpu"></i></div>
           <div>
             <div class="stat-number" id="stat-active-cases">0</div>
             <div class="stat-title">Active In Production</div>
@@ -262,7 +339,7 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon-wrap" style="background: #dcfce7; color: #16a34a;">🚚</div>
+          <div class="stat-icon-wrap" style="background: #dcfce7; color: #16a34a;"><i data-lucide="truck"></i></div>
           <div>
             <div class="stat-number" id="stat-dispatched-today">0</div>
             <div class="stat-title">Dispatched / Delivered</div>
@@ -274,25 +351,25 @@
       <div class="ledger-toolbar-card">
         <div class="toolbar-search-row">
           <div class="search-wrap">
-            <span class="search-magnifier">🔍</span>
+            <i data-lucide="search" class="search-magnifier"></i>
             <input type="text" class="search-input" id="dashboard-search-input" placeholder="Search by patient, clinic, doctor, or Order ID...">
           </div>
 
           <div class="toolbar-btn-group">
-            <button type="button" class="btn btn-gdrive" id="btn-sync-gdrive" title="Sync live orders to Google Drive Master Billing Excel">
-              <span>☁️</span>
+            <button type="button" class="btn btn-gdrive admin-only" id="btn-sync-gdrive" title="Sync live orders to Google Drive Master Billing Excel">
+              <i data-lucide="cloud"></i>
               <span id="btn-sync-gdrive-text">Sync Google Drive</span>
             </button>
-            <button type="button" class="btn btn-excel" id="btn-export-excel">
-              <span>📊</span>
+            <button type="button" class="btn btn-excel admin-only" id="btn-export-excel">
+              <i data-lucide="file-spreadsheet"></i>
               <span>Export Excel (.xlsx)</span>
             </button>
-            <button type="button" class="btn btn-secondary" id="btn-open-google-settings">
-              <span>☁️</span>
+            <button type="button" class="btn btn-secondary admin-only" id="btn-open-google-settings">
+              <i data-lucide="table"></i>
               <span>Google Sheets Sync</span>
             </button>
             <button type="button" class="btn btn-primary" id="btn-quick-new-scan">
-              <span>+</span>
+              <i data-lucide="plus"></i>
               <span>New Scan</span>
             </button>
           </div>
@@ -302,7 +379,7 @@
           <div class="filter-controls">
             <span class="filter-label">Filters:</span>
             <select class="filter-select" id="filter-date">
-              <option value="all">📅 All Dates</option>
+              <option value="all">All Dates</option>
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
               <option value="last7">Last 7 Days</option>
@@ -326,7 +403,7 @@
       </div>
 
       <!-- Google Drive Sync Status Banner -->
-      <div class="gdrive-banner" id="gdrive-sync-banner">
+      <div class="gdrive-banner admin-only" id="gdrive-sync-banner">
         <div class="gdrive-banner-left">
           <span class="gdrive-banner-dot" id="gdrive-banner-dot"></span>
           <div>
@@ -341,10 +418,10 @@
         </div>
         <div class="gdrive-banner-right">
           <span class="gdrive-last-sync-time" id="gdrive-last-sync-label">Last synced: Just now</span>
-          <button type="button" class="btn-gdrive-sync-now" id="btn-gdrive-sync-now" title="Force sync to Google Drive">
-            <span class="sync-icon" id="sync-icon-spin">🔄</span>
-            <span>Sync Now</span>
-          </button>
+          <button type="button" class="btn-gdrive-sync-now" id="btn-gdrive-sync-now" title="Force sync to Google Drive now">
+              <i data-lucide="refresh-cw" class="sync-icon" id="sync-icon-spin"></i>
+              <span id="sync-text-now">Sync Drive Now</span>
+            </button>
         </div>
       </div>
 
@@ -380,7 +457,7 @@
           <h2 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Register New Clinic</h2>
           <div style="font-size: 0.78rem; color: #64748b;">Add clinic &amp; doctor profile</div>
         </div>
-        <button type="button" class="btn-close">&times;</button>
+        <button type="button" class="btn-close"><i data-lucide="x"></i></button>
       </div>
 
       <form id="register-clinic-form">
@@ -458,7 +535,7 @@
   <div class="modal-overlay" id="order-success-modal">
     <div class="modal-content" style="max-width: 480px;">
       <div class="modal-body success-card" style="padding: 1.5rem; text-align: center;">
-        <div class="success-check-badge">✓</div>
+        <div class="success-check-badge"><i data-lucide="check-circle-2" class="lucide-hero"></i></div>
         <div class="success-order-id" id="success-order-id">HS-260927-001</div>
         <div class="success-patient" id="success-patient-name">Patient Name</div>
         <div class="success-clinic" id="success-clinic-doc">Clinic • Doctor</div>
@@ -471,24 +548,27 @@
         <!-- 1-Click Billing Text Box -->
         <div class="billing-copy-card">
           <div class="billing-copy-head">
-            <span style="font-weight: 700; font-size: 0.82rem; color: #0f172a;">⚡ 1-Click Billing Intake Text</span>
+            <span style="font-weight: 700; font-size: 0.82rem; color: #0f172a; display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="sparkles" class="lucide-sm" style="color: var(--brand-bioceramic, #7A9C96);"></i> 1-Click Billing Intake Text
+            </span>
             <button type="button" class="btn-copy-chip" id="btn-copy-billing-success">
-              📋 Copy Text
+              <i data-lucide="copy" class="lucide-xs"></i> Copy Text
             </button>
           </div>
           <pre id="billing-text-preview" class="billing-preview-code"></pre>
-          <div class="billing-copy-hint">💡 Paste directly into 'Smart WhatsApp &amp; Order Intake' in your billing system.</div>
+          <div class="billing-copy-hint"><i data-lucide="sparkles" class="lucide-xs" style="vertical-align: middle; margin-right: 4px;"></i> Paste directly into 'Smart WhatsApp &amp; Order Intake' in your billing system.</div>
         </div>
 
         <div class="whatsapp-share-card">
           <a href="#" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp btn-full" id="btn-whatsapp-share">
-            <span>💬</span>
+            <i data-lucide="message-square"></i>
             <span>Send WhatsApp Confirmation Slip to Doctor</span>
           </a>
         </div>
 
         <button type="button" class="btn btn-primary btn-full btn-lg" onclick="resetFormForNextCase()" style="margin-top: 0.75rem;">
-          <span>+ Enroll Next Case</span>
+          <i data-lucide="plus"></i>
+          <span>Enroll Next Case</span>
         </button>
       </div>
     </div>
@@ -499,14 +579,16 @@
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
         <div>
-          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">📋 Smart Billing Intake Text</h3>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 7px;">
+          <i data-lucide="clipboard-list" class="lucide-md"></i> Smart Billing Intake Text
+        </h3>
           <div style="font-size: 0.78rem; color: #64748b;">Formatted for 1-Click Autofill in Hesyra Billing System</div>
         </div>
-        <button type="button" class="btn-close" id="btn-close-billing-modal">&times;</button>
+        <button type="button" class="btn-close" id="btn-close-billing-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="modal-body" style="padding: 1rem 1.25rem;">
         <div class="copied-banner">
-          <span>✅</span>
+          <i data-lucide="check-circle-2" style="color: #16a34a;"></i>
           <strong>Copied to clipboard! Ready to paste into Smart WhatsApp Intake.</strong>
         </div>
         <pre id="modal-billing-text-content" class="billing-modal-code"></pre>
@@ -514,7 +596,7 @@
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem;">
         <span style="font-size: 0.75rem; color: #64748b;">Pattern matches Smart WhatsApp Intake</span>
         <button type="button" class="btn btn-primary" id="btn-modal-re-copy" style="background: #0d9488; border-color: #0d9488;">
-          📋 Copy Again
+          <i data-lucide="copy"></i> Copy Again
         </button>
       </div>
     </div>
@@ -525,10 +607,12 @@
     <div class="modal-content" style="max-width: 600px;">
       <div class="modal-header">
         <div>
-          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">🦷 FDI Tooth Chart Selector</h3>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 7px;">
+          <i data-lucide="grid-3x3" class="lucide-md"></i> FDI Tooth Chart Selector
+        </h3>
           <div style="font-size: 0.78rem; color: #64748b;">Tap teeth to mark numbers for this line item</div>
         </div>
-        <button type="button" class="btn-close" id="btn-close-tooth-modal">&times;</button>
+        <button type="button" class="btn-close" id="btn-close-tooth-modal"><i data-lucide="x"></i></button>
       </div>
 
       <div class="modal-body" style="padding: 1rem 1.25rem;">
@@ -551,7 +635,7 @@
     <div class="modal-content" style="max-width: 600px;">
       <div class="modal-header">
         <h3 class="card-title" id="detail-modal-title">Case Details</h3>
-        <button type="button" class="btn-close">&times;</button>
+        <button type="button" class="btn-close"><i data-lucide="x"></i></button>
       </div>
       <div class="modal-body" id="detail-modal-body" style="padding: 1.25rem;"></div>
       <div class="modal-footer" style="padding: 0.75rem 1.25rem;">
@@ -565,10 +649,12 @@
     <div class="modal-content" style="max-width: 560px;">
       <div class="modal-header">
         <div>
-          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">☁️ Google Sheets Auto-Sync</h3>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 7px;">
+          <i data-lucide="table" class="lucide-md"></i> Google Sheets Auto-Sync
+        </h3>
           <div style="font-size: 0.78rem; color: #64748b;">Real-time case row appending via Apps Script Webhook</div>
         </div>
-        <button type="button" class="btn-close">&times;</button>
+        <button type="button" class="btn-close"><i data-lucide="x"></i></button>
       </div>
       <div class="modal-body" style="padding: 1.25rem;">
         <div class="form-field" style="margin-bottom: 1rem;">
@@ -580,7 +666,9 @@
           <button type="button" class="btn btn-primary" id="btn-save-google-settings">Save Webhook</button>
         </div>
         <div class="code-snippet-box">
-          <button type="button" class="btn-copy-code" id="btn-copy-script">Copy Apps Script</button>
+          <button type="button" class="btn-copy-code" id="btn-copy-script">
+            <i data-lucide="copy" class="lucide-xs"></i> Copy Apps Script
+          </button>
           <pre id="google-script-code">Loading script...</pre>
         </div>
       </div>
@@ -618,9 +706,9 @@
   <div id="toast-container"></div>
 
   <!-- SCRIPTS -->
+  <script src="js/app.js"></script>
   <script src="js/toothChart.js"></script>
   <script src="js/fieldForm.js"></script>
   <script src="js/dashboard.js"></script>
-  <script src="js/app.js"></script>
 </body>
 </html>

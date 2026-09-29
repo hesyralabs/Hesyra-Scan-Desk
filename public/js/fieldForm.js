@@ -35,20 +35,12 @@ const PRODUCT_CATALOG = {
 
 const PRODUCT_PLANS = {
   "Permanent Crown": [
-    "Hesyra Pro (5 Yr Warranty) — 950",
-    "Hesyra Signature (5 Yr Warranty) — 1,200",
-    "Hesyra Premium (7 Yr Warranty) — 1,500",
-    "Hesyra Elite (10 Yr Warranty) — 1,800",
-    "Standard (Pro Tier) — 950",
-    "Express (Signature Tier) — 1,200"
+    "Ceramic Crown — 950",
+    "Zirconia Crown — 1,500"
   ],
   "Bridge (Per Unit)": [
-    "Hesyra Pro (5 Yr Warranty) — 950",
-    "Hesyra Signature (5 Yr Warranty) — 1,200",
-    "Hesyra Premium (7 Yr Warranty) — 1,500",
-    "Hesyra Elite (10 Yr Warranty) — 1,800",
-    "Standard (Pro Tier) — 950",
-    "Express (Signature Tier) — 1,200"
+    "Ceramic Crown — 950",
+    "Zirconia Crown — 1,500"
   ],
   "Inlays & Onlays": [
     "e.max CAD / Lithium Disilicate",
@@ -209,6 +201,7 @@ function setupClinicRegistrationModal() {
 
   btnOpen.addEventListener('click', () => {
     modal.classList.add('open');
+  if (window.refreshIcons) window.refreshIcons();
   });
 
   form?.addEventListener('submit', async (e) => {
@@ -310,6 +303,125 @@ function updatePlanDropdown(planSelectEl, product, preferredPlan) {
   }).join('');
 }
 
+
+// ==========================================================================
+// VITA CLASSICAL & BLEACH SHADE SELECTOR SYSTEM
+// ==========================================================================
+const VITA_SHADES = [
+  {
+    group: "Popular / VITA A (Reddish-Brownish)",
+    shades: [
+      { code: "A1", label: "A1 — Light Ivory" },
+      { code: "A2", label: "A2 — Natural (Most Common)" },
+      { code: "A3", label: "A3 — Warm Natural" },
+      { code: "A3.5", label: "A3.5 — Dark Warm" },
+      { code: "A4", label: "A4 — Intense Warm Brown" }
+    ]
+  },
+  {
+    group: "VITA B (Reddish-Yellowish)",
+    shades: [
+      { code: "B1", label: "B1 — Light Yellow / High Value" },
+      { code: "B2", label: "B2 — Natural Yellowish" },
+      { code: "B3", label: "B3 — Warm Yellowish" },
+      { code: "B4", label: "B4 — Dark Yellowish" }
+    ]
+  },
+  {
+    group: "VITA C (Greyish)",
+    shades: [
+      { code: "C1", label: "C1 — Light Grey" },
+      { code: "C2", label: "C2 — Natural Greyish" },
+      { code: "C3", label: "C3 — Medium Greyish" },
+      { code: "C4", label: "C4 — Dark Greyish" }
+    ]
+  },
+  {
+    group: "VITA D (Reddish-Grey)",
+    shades: [
+      { code: "D2", label: "D2 — Light Reddish-Grey" },
+      { code: "D3", label: "D3 — Medium Reddish-Grey" },
+      { code: "D4", label: "D4 — Dark Reddish-Grey" }
+    ]
+  },
+  {
+    group: "Bleach Shades (Aesthetic Ultra-White)",
+    shades: [
+      { code: "BL1", label: "BL1 — Ultra Bleach White" },
+      { code: "BL2", label: "BL2 — Bleach White" },
+      { code: "BL3", label: "BL3 — Soft Bleach" },
+      { code: "BL4", label: "BL4 — Natural Light Bleach" }
+    ]
+  }
+];
+
+const ALL_STANDARD_SHADES = [
+  'A1', 'A2', 'A3', 'A3.5', 'A4',
+  'B1', 'B2', 'B3', 'B4',
+  'C1', 'C2', 'C3', 'C4',
+  'D2', 'D3', 'D4',
+  'BL1', 'BL2', 'BL3', 'BL4'
+];
+
+function renderShadeSelectHtml(selectedShade = 'A2') {
+  const isCustom = selectedShade && !ALL_STANDARD_SHADES.includes(selectedShade);
+  
+  let optionsHtml = '';
+  VITA_SHADES.forEach(group => {
+    optionsHtml += `<optgroup label="${group.group}">`;
+    group.shades.forEach(s => {
+      const isSel = (!isCustom && (selectedShade === s.code)) ? 'selected' : '';
+      optionsHtml += `<option value="${s.code}" ${isSel}>${s.label}</option>`;
+    });
+    optionsHtml += `</optgroup>`;
+  });
+  
+  optionsHtml += `
+    <optgroup label="Custom / Special">
+      <option value="CUSTOM" ${isCustom ? 'selected' : ''}>Custom / Not Listed...</option>
+    </optgroup>
+  `;
+
+  return `
+    <div class="shade-selector-wrap">
+      <select class="form-select item-shade" onchange="handleShadeChange(this)" title="Choose tooth shade from VITA Classical & Bleach standards">
+        ${optionsHtml}
+      </select>
+      <input type="text" class="form-input item-shade-custom" placeholder="Type custom shade (e.g. 2M2, ND2)..." 
+        value="${isCustom ? escapeHtml(selectedShade) : ''}" 
+        style="${isCustom ? 'display: block;' : 'display: none;'} margin-top: 4px; font-size: 0.8rem;">
+    </div>
+  `;
+}
+
+function handleShadeChange(selectEl) {
+  const wrap = selectEl.closest('.shade-selector-wrap') || selectEl.parentElement;
+  const customInput = wrap.querySelector('.item-shade-custom');
+  if (selectEl.value === 'CUSTOM') {
+    if (customInput) {
+      customInput.style.display = 'block';
+      customInput.focus();
+    }
+  } else {
+    if (customInput) {
+      customInput.style.display = 'none';
+      customInput.value = '';
+    }
+  }
+}
+window.handleShadeChange = handleShadeChange;
+
+function getRowShadeValue(rowEl) {
+  const select = rowEl.querySelector('.item-shade');
+  if (!select) return 'A2';
+  if (select.value === 'CUSTOM') {
+    const custom = rowEl.querySelector('.item-shade-custom');
+    return (custom?.value.trim()) || 'Custom';
+  }
+  return select.value || 'A2';
+}
+window.getRowShadeValue = getRowShadeValue;
+
 function getRowBottomHtml(itemId, product, values = {}) {
   if (isArchProduct(product)) {
     // Aligner / Arch Mode (Screenshot 4)
@@ -331,7 +443,7 @@ function getRowBottomHtml(itemId, product, values = {}) {
         </div>
 
         <div class="item-col col-delete">
-          <button type="button" class="btn-delete-line-item" title="Remove line item" onclick="removeLineItem(${itemId})">✕</button>
+          <button type="button" class="btn-delete-line-item" title="Remove line item" onclick="removeLineItem(${itemId})"><i data-lucide="trash-2"></i></button>
         </div>
       </div>
     `;
@@ -344,14 +456,14 @@ function getRowBottomHtml(itemId, product, values = {}) {
           <div class="tooth-input-wrap">
             <input type="text" class="form-input item-teeth" placeholder="e.g. 16, 1" value="${escapeHtml(values.teeth || '')}">
             <button type="button" class="btn-tooth-picker-icon" title="Select teeth on interactive FDI chart" onclick="openToothPicker(${itemId})">
-              🦷
+              <i data-lucide="grid-3x3"></i>
             </button>
           </div>
         </div>
 
         <div class="item-col col-shade">
           <label class="item-field-label">Shade</label>
-          <input type="text" class="form-input item-shade" placeholder="e.g. A2" value="${escapeHtml(values.shade || 'A2')}" list="shade-suggestions-list">
+          ${renderShadeSelectHtml(values.shade || 'A2')}
         </div>
 
         <div class="item-col col-note">
@@ -360,7 +472,7 @@ function getRowBottomHtml(itemId, product, values = {}) {
         </div>
 
         <div class="item-col col-delete">
-          <button type="button" class="btn-delete-line-item" title="Remove line item" onclick="removeLineItem(${itemId})">✕</button>
+          <button type="button" class="btn-delete-line-item" title="Remove line item" onclick="removeLineItem(${itemId})"><i data-lucide="trash-2"></i></button>
         </div>
       </div>
     `;
@@ -371,7 +483,7 @@ function updateRowBottomView(itemEl, itemId, product) {
   const currentBottom = itemEl.querySelector('.line-item-row-bottom');
   const values = {
     teeth: itemEl.querySelector('.item-teeth')?.value || '',
-    shade: itemEl.querySelector('.item-shade')?.value || 'A2',
+    shade: getRowShadeValue(itemEl),
     arch: itemEl.querySelector('.item-arch')?.value || '',
     note: itemEl.querySelector('.item-note')?.value || ''
   };
@@ -385,6 +497,7 @@ function updateRowBottomView(itemEl, itemId, product) {
   } else {
     itemEl.appendChild(newBottom);
   }
+  if (window.refreshIcons) window.refreshIcons();
 }
 
 function addLineItem() {
@@ -394,7 +507,7 @@ function addLineItem() {
   itemCounter++;
   const itemId = itemCounter;
   const defaultProduct = 'Permanent Crown';
-  const defaultPlan = 'Hesyra Pro (5 Yr Warranty) — 950';
+  const defaultPlan = 'Ceramic Crown — 950';
 
   const itemEl = document.createElement('div');
   itemEl.className = 'line-item-card';
@@ -445,6 +558,7 @@ function addLineItem() {
     updatePlanDropdown(planSelect, selectedProd);
     updateRowBottomView(itemEl, itemId, selectedProd);
   });
+  if (window.refreshIcons) window.refreshIcons();
 }
 
 window.removeLineItem = function(id) {
@@ -506,6 +620,7 @@ window.openToothPicker = function(itemId) {
   }
 
   modal.classList.add('open');
+  if (window.refreshIcons) window.refreshIcons();
 };
 
 function setupCameraCapture() {
@@ -594,7 +709,7 @@ function setupFormSubmit() {
       const qty = parseInt(r.querySelector('.item-qty')?.value, 10) || 1;
       const arch = r.querySelector('.item-arch')?.value || '';
       const teeth = r.querySelector('.item-teeth')?.value.trim() || '';
-      const shade = r.querySelector('.item-shade')?.value.trim() || '';
+      const shade = getRowShadeValue(r);
       const note = r.querySelector('.item-note')?.value.trim() || '';
 
       if (prod) {
@@ -616,7 +731,7 @@ function setupFormSubmit() {
     }
 
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<span>⏳</span><span>Enrolling Case...</span>';
+    btnSubmit.innerHTML = '<i data-lucide="loader-2" class="lucide-spin"></i><span>Enrolling Case...</span>'; if (window.refreshIcons) window.refreshIcons();
 
     try {
       const fd = new FormData();
@@ -635,7 +750,7 @@ function setupFormSubmit() {
       fd.append('items', JSON.stringify(items));
       fd.append('clinicalNotes', document.getElementById('input-clinical-notes').value.trim());
 
-      fd.append('techName', document.getElementById('input-tech-name')?.value || 'Field Tech');
+      fd.append('techName', (window.currentUser && window.currentUser.role === 'tech') ? window.currentUser.fullName : (document.getElementById('input-tech-name')?.value || window.currentUser?.fullName || 'Field Scan Tech'));
       fd.append('scannerModel', document.getElementById('input-scanner-model')?.value || 'Intraoral Scanner');
       fd.append('scanLink', document.getElementById('input-scan-link')?.value?.trim() || '');
 
@@ -654,7 +769,7 @@ function setupFormSubmit() {
       showToast('Network error: ' + err.message, 'error');
     } finally {
       btnSubmit.disabled = false;
-      btnSubmit.innerHTML = '<span>⚡</span><span>Enroll Case (Start 48h Timer)</span>';
+      btnSubmit.innerHTML = '<i data-lucide="send"></i><span>Enroll Case (Start 48h Timer)</span>'; if (window.refreshIcons) window.refreshIcons();
     }
   });
 }
@@ -727,6 +842,7 @@ Your case has entered the central CAD/Milling queue.`
   }
 
   modal.classList.add('open');
+  if (window.refreshIcons) window.refreshIcons();
 }
 
 window.resetFormForNextCase = function() {
@@ -857,7 +973,7 @@ function getFormDataForBilling() {
     const qty = parseInt(r.querySelector('.item-qty')?.value, 10) || 1;
     const arch = r.querySelector('.item-arch')?.value || '';
     const teeth = r.querySelector('.item-teeth')?.value.trim() || '';
-    const shade = r.querySelector('.item-shade')?.value.trim() || '';
+    const shade = getRowShadeValue(r);
     const note = r.querySelector('.item-note')?.value.trim() || '';
 
     if (prod) {
@@ -912,13 +1028,14 @@ window.copyBillingTextToClipboard = async function(customText) {
     ta.remove();
   }
 
-  showToast('📋 Copied for Billing System! Ready to 1-click paste.', 'success');
+  showToast('Copied for Billing System! Ready to 1-click paste.', 'success');
 
   const modal = document.getElementById('billing-copy-modal');
   const preview = document.getElementById('modal-billing-text-content');
   if (modal && preview) {
     preview.textContent = text;
     modal.classList.add('open');
+  if (window.refreshIcons) window.refreshIcons();
   }
 };
 

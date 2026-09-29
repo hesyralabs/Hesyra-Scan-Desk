@@ -76,6 +76,28 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    passwordHash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    fullName TEXT NOT NULL,
+    role TEXT DEFAULT 'staff',
+    active INTEGER DEFAULT 1,
+    createdAt TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    userId INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    fullName TEXT NOT NULL,
+    role TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    expiresAt TEXT NOT NULL
+  );
+
 `);
 
 // Auto-seed default approved clinics if table is empty (e.g. on fresh cloud deployment)

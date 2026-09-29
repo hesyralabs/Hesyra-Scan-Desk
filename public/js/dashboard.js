@@ -1,10 +1,23 @@
-﻿/**
+/**
  * Back-Office Order Tracker with Live 48-Hour Countdown Timers & Excel Export
- * (No Patient Chart ID, No Clinic Username, No Portal ID)
+ * Role-Based Access Control: Admin has full status/delete/sync power; Field Tech has read-only tracking.
  */
 let currentOrders = [];
 let activeFilters = { search: '', status: 'all', clinicId: 'all', datePreset: 'all' };
 let timerInterval = null;
+
+function getStatusIcon(status) {
+  switch (status) {
+    case 'Scanned': return '<i data-lucide="inbox"></i>';
+    case 'In CAD': return '<i data-lucide="box"></i>';
+    case 'In Milling': return '<i data-lucide="cog"></i>';
+    case 'Sintering/Glaze': return '<i data-lucide="flame"></i>';
+    case 'QC Passed': return '<i data-lucide="shield-check"></i>';
+    case 'Dispatched': return '<i data-lucide="truck"></i>';
+    case 'Delivered': return '<i data-lucide="check-circle-2"></i>';
+    default: return '<i data-lucide="package"></i>';
+  }
+}
 
 async function initDashboard() {
   setupFilterListeners();
@@ -13,7 +26,9 @@ async function initDashboard() {
   setupGoogleDriveSync();
   await refreshDashboardStats();
   await loadOrders();
-  await checkGoogleDriveStatus();
+  if (window.currentUser?.role === 'admin') {
+    await checkGoogleDriveStatus();
+  }
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
@@ -27,12 +42,17 @@ async function refreshDashboardStats() {
     const data = await res.json();
     if (data.success && data.stats) {
       const s = data.stats;
-      document.getElementById('stat-today-cases').textContent = s.todayOrders || 0;
-      document.getElementById('stat-today-units').textContent = `${s.todayUnits || 0} Units`;
-      document.getElementById('stat-urgent-cases').textContent = s.urgentCount || 0;
-      document.getElementById('stat-crown-cases').textContent = s.crownsCount || 0;
-      document.getElementById('stat-active-cases').textContent = s.activeCases || 0;
-      document.getElementById('stat-dispatched-today').textContent = s.dispatchedCount || 0;
+      const elTotal = document.getElementById('stat-total-cases') || document.getElementById('stat-today-cases');
+      if (elTotal) elTotal.textContent = s.totalOrders || s.todayOrders || 0;
+
+      const elUrgent = document.getElementById('stat-sla-urgent') || document.getElementById('stat-urgent-cases');
+      if (elUrgent) elUrgent.textContent = s.urgentCount || 0;
+
+      const elActive = document.getElementById('stat-active-cases');
+      if (elActive) elActive.textContent = s.activeCases || 0;
+
+      const elDispatched = document.getElementById('stat-dispatched-today');
+      if (elDispatched) elDispatched.textContent = s.dispatchedCount || 0;
     }
   } catch (err) {}
 }
@@ -63,6 +83,7 @@ async function loadOrders() {
 function renderOrdersTable(orders) {
   const tableBody = document.getElementById('orders-table-body');
   const countEl = document.getElementById('table-results-count');
+  const isAdmin = window.currentUser?.role === 'admin';
 
   if (countEl) countEl.textContent = `${orders.length} Case${orders.length === 1 ? '' : 's'} Listed`;
 
@@ -70,7 +91,7 @@ function renderOrdersTable(orders) {
     tableBody.innerHTML = `
       <tr>
         <td colspan="8" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-          <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+          <div style="margin-bottom: 0.65rem;"><i data-lucide="clipboard-list" class="lucide-hero" style="stroke-width: 1.5px; opacity: 0.5;"></i></div>
           <div style="font-weight: 700; color: var(--text-main);">No cases found</div>
           <div style="font-size: 0.85rem;">Technicians can enroll cases chairside using the "Field Scanner" tab.</div>
         </td>
@@ -97,10 +118,42 @@ function renderOrdersTable(orders) {
       </div>
     `).join('');
 
+    // Production Stage Cell: Admin gets editable select; Tech gets read-only badge
+    let stageCellHtml = '';
+    if (isAdmin) {
+      stageCellHtml = `
+        <select class="status-select-inline status-${o.status.toLowerCase().replace(/[^a-z]/g, '')}" onchange="updateOrderStatus('${o.orderId}', this.value)" title="Central Lab Admin: Advance Production Stage">
+          <option value="Scanned" ${o.status === 'Scanned' ? 'selected' : ''}>Scanned</option>
+          <option value="In CAD" ${o.status === 'In CAD' ? 'selected' : ''}>In CAD</option>
+          <option value="In Milling" ${o.status === 'In Milling' ? 'selected' : ''}>In Milling</option>
+          <option value="Sintering/Glaze" ${o.status === 'Sintering/Glaze' ? 'selected' : ''}>Sintering / Glaze</option>
+          <option value="QC Passed" ${o.status === 'QC Passed' ? 'selected' : ''}>QC Passed</option>
+          <option value="Dispatched" ${o.status === 'Dispatched' ? 'selected' : ''}>Dispatched</option>
+          <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+        </select>
+      `;
+    } else {
+      stageCellHtml = `
+        <span class="status-badge-readonly status-${o.status.toLowerCase().replace(/[^a-z]/g, '')}" title="Lab Stage Managed by Central Lab">
+          ${getStatusIcon(o.status)} ${escapeHtml(o.status)}
+        </span>
+      `;
+    }
+
+    // Actions Cell: Admin gets delete button; Tech does not
+    let actionsHtml = `
+      <div class="action-btns-group">
+        <button type="button" class="btn-icon-action" title="View Details" onclick="viewOrderDetails('${o.orderId}')"><i data-lucide="eye"></i></button>
+        <button type="button" class="btn-icon-action" title="Print Lab Job Card" onclick="printJobTicket('${o.orderId}')"><i data-lucide="printer"></i></button>
+        ${isAdmin ? `<button type="button" class="btn-icon-action btn-delete-order" title="Delete Case (Admin Only)" onclick="confirmDeleteOrder('${o.orderId}')" style="color: #dc2626;"><i data-lucide="trash-2"></i></button>` : ''}
+        ${o.scanLink ? `<a href="${escapeHtml(o.scanLink)}" target="_blank" rel="noopener noreferrer" class="btn-icon-action" title="Open Scan Link"><i data-lucide="external-link"></i></a>` : ''}
+      </div>
+    `;
+
     return `
       <tr data-order-id="${o.orderId}" data-deadline="${o.deliveryDeadline}" data-status="${o.status}">
         <td class="order-id-cell">
-          <div>${escapeHtml(o.orderId)}</div>
+          <div style="font-weight: 800; color: #0284c7;">${escapeHtml(o.orderId)}</div>
           <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">
             Scan: ${new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
           </div>
@@ -131,15 +184,7 @@ function renderOrdersTable(orders) {
         </td>
 
         <td>
-          <select class="status-select-inline status-${o.status.toLowerCase().replace(/[^a-z]/g, '')}" onchange="updateOrderStatus('${o.orderId}', this.value)">
-            <option value="Scanned" ${o.status === 'Scanned' ? 'selected' : ''}>📥 Scanned</option>
-            <option value="In CAD" ${o.status === 'In CAD' ? 'selected' : ''}>💻 In CAD</option>
-            <option value="In Milling" ${o.status === 'In Milling' ? 'selected' : ''}>⚙️ In Milling</option>
-            <option value="Sintering/Glaze" ${o.status === 'Sintering/Glaze' ? 'selected' : ''}>🔥 Sintering/Glaze</option>
-            <option value="QC Passed" ${o.status === 'QC Passed' ? 'selected' : ''}>✅ QC Passed</option>
-            <option value="Dispatched" ${o.status === 'Dispatched' ? 'selected' : ''}>🚚 Dispatched</option>
-            <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>🎉 Delivered</option>
-          </select>
+          ${stageCellHtml}
         </td>
 
         <td>
@@ -148,20 +193,18 @@ function renderOrdersTable(orders) {
         </td>
 
         <td>
-          <div class="action-btns-group">
-            <button type="button" class="btn-icon-action" title="View Details" onclick="viewOrderDetails('${o.orderId}')">🔍</button>
-            <button type="button" class="btn-icon-action" title="Print Lab Job Card" onclick="printJobTicket('${o.orderId}')">🖨️</button>
-            ${o.scanLink ? `<a href="${escapeHtml(o.scanLink)}" target="_blank" rel="noopener noreferrer" class="btn-icon-action" title="Open Scan Link">☁️</a>` : ''}
-          </div>
+          ${actionsHtml}
         </td>
       </tr>
     `;
   }).join('');
+  if (window.refreshIcons) window.refreshIcons();
+  else if (window.lucide) window.lucide.createIcons({ icons: window.lucide.icons });
 }
 
 function getTimerBadgeHtml(deadlineIso, status) {
   if (['Dispatched', 'Delivered'].includes(status)) {
-    return `<span class="badge badge-delivered" style="font-size: 0.78rem;">✓ Delivered (${status})</span>`;
+    return `<span class="badge badge-delivered" style="font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="check-circle-2" class="lucide-xs"></i> Delivered (${status})</span>`;
   }
 
   const deadline = new Date(deadlineIso);
@@ -174,7 +217,7 @@ function getTimerBadgeHtml(deadlineIso, status) {
     const overM = Math.abs(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
     return `
       <div class="timer-badge timer-overdue">
-        <span class="timer-icon">⏰</span>
+        <span class="timer-icon"><i data-lucide="alert-circle" class="lucide-sm"></i></span>
         <div>
           <div style="font-weight: 800; font-size: 0.85rem; line-height: 1;">OVERDUE</div>
           <div style="font-size: 0.7rem;">by ${overH}h ${overM}m</div>
@@ -187,16 +230,16 @@ function getTimerBadgeHtml(deadlineIso, status) {
   const leftM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
   let timerClass = 'timer-ok';
-  let icon = '⏳';
+  let icon = '<i data-lucide="clock" class="lucide-sm"></i>';
   let label = '48h Promised';
 
   if (leftH <= 4) {
     timerClass = 'timer-critical';
-    icon = '🚨';
+    icon = '<i data-lucide="alert-triangle" class="lucide-sm"></i>';
     label = 'CRITICAL';
   } else if (leftH <= 12) {
     timerClass = 'timer-warning';
-    icon = '⚡';
+    icon = '<i data-lucide="clock-4" class="lucide-sm"></i>';
     label = 'DUE SOON';
   }
 
@@ -212,6 +255,7 @@ function getTimerBadgeHtml(deadlineIso, status) {
 }
 
 function updateAllCountdowns() {
+  let updated = false;
   document.querySelectorAll('tr[data-order-id]').forEach(row => {
     const orderId = row.getAttribute('data-order-id');
     const deadline = row.getAttribute('data-deadline');
@@ -219,11 +263,25 @@ function updateAllCountdowns() {
     const cell = document.getElementById(`timer-${orderId}`);
     if (cell && deadline) {
       cell.innerHTML = getTimerBadgeHtml(deadline, status);
+      updated = true;
     }
   });
+  if (updated) {
+    if (window.refreshIcons) window.refreshIcons();
+    else if (window.lucide) window.lucide.createIcons({ icons: window.lucide.icons });
+  }
 }
 
+/**
+ * Update case stage (Admin Only)
+ */
 async function updateOrderStatus(orderId, newStatus) {
+  if (window.currentUser?.role !== 'admin') {
+    showToast('Permission Denied: Only Central Lab Administrators can change production stages.', 'error');
+    await loadOrders();
+    return;
+  }
+
   try {
     const res = await fetch(`/api/orders/${orderId}/status`, {
       method: 'PATCH',
@@ -235,8 +293,43 @@ async function updateOrderStatus(orderId, newStatus) {
       showToast(`Case ${orderId} moved to ${newStatus}`, 'success');
       refreshDashboardStats();
       await loadOrders();
+    } else {
+      showToast(result.error || 'Failed to update status', 'error');
+      await loadOrders();
     }
-  } catch (e) {}
+  } catch (e) {
+    showToast('Network error while updating status', 'error');
+  }
+}
+
+/**
+ * Permanently delete case (Admin Only)
+ */
+async function confirmDeleteOrder(orderId) {
+  if (window.currentUser?.role !== 'admin') {
+    showToast('Permission Denied: Only Central Lab Administrators can delete cases.', 'error');
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to permanently delete case ${orderId}?\nThis cannot be undone and will remove it from the lab ledger.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: 'DELETE'
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(`Case ${orderId} deleted permanently.`, 'success');
+      refreshDashboardStats();
+      await loadOrders();
+    } else {
+      showToast(result.error || 'Failed to delete order', 'error');
+    }
+  } catch (err) {
+    showToast('Error deleting case: ' + err.message, 'error');
+  }
 }
 
 function setupFilterListeners() {
@@ -256,6 +349,10 @@ function setupFilterListeners() {
 
 function setupExcelExport() {
   document.getElementById('btn-export-excel')?.addEventListener('click', () => {
+    if (window.currentUser?.role !== 'admin') {
+      showToast('Permission Denied: Master database export is restricted to Central Lab Administrators.', 'error');
+      return;
+    }
     window.location.href = '/api/export/excel';
     showToast('Downloading 48-Hour Case Ledger (.xlsx)...', 'success');
   });
@@ -269,6 +366,10 @@ function setupGoogleSheetsConfig() {
   const inputUrl = document.getElementById('input-google-webhook');
 
   btnOpen?.addEventListener('click', async () => {
+    if (window.currentUser?.role !== 'admin') {
+      showToast('Permission Denied: Google Sheets integration is restricted to Central Lab Administrators.', 'error');
+      return;
+    }
     try {
       const [r1, r2] = await Promise.all([
         fetch('/api/settings').then(r => r.json()),
@@ -277,10 +378,15 @@ function setupGoogleSheetsConfig() {
       if (r1.success && inputUrl) inputUrl.value = r1.settings.google_sheet_webhook_url || '';
       if (r2.success) document.getElementById('google-script-code').textContent = r2.script;
       modal.classList.add('open');
+  if (window.refreshIcons) window.refreshIcons();
     } catch (e) {}
   });
 
   btnSave?.addEventListener('click', async () => {
+    if (window.currentUser?.role !== 'admin') {
+      showToast('Administrative privileges required.', 'error');
+      return;
+    }
     await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -299,10 +405,10 @@ function setupGoogleSheetsConfig() {
         body: JSON.stringify({ url: inputUrl.value.trim() })
       });
       const data = await res.json();
-      if (data.success) showToast('✅ Google Sheet is verified and connected!', 'success');
-      else showToast('❌ ' + data.error, 'error');
+      if (data.success) showToast('Google Sheet is verified and connected!', 'success');
+      else showToast(data.error, 'error');
     } catch (e) {
-      showToast('❌ Test failed: ' + e.message, 'error');
+      showToast('Test failed: ' + e.message, 'error');
     } finally {
       btnTest.textContent = 'Test Connection';
     }
@@ -323,7 +429,7 @@ function viewOrderDetails(orderId) {
   const modal = document.getElementById('order-detail-modal');
   if (!modal) return;
 
-  document.getElementById('detail-modal-title').textContent = `Case ${o.orderId} — ${o.patientName}`;
+  document.getElementById('detail-modal-title').textContent = `Case ${o.orderId} - ${o.patientName}`;
 
   let items = [];
   try { items = JSON.parse(o.items || '[]'); } catch (e) {}
@@ -355,11 +461,11 @@ function viewOrderDetails(orderId) {
 
     <div style="background: var(--bg-card-subtle); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
       <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.5rem; text-transform: uppercase; color: var(--primary);">
-        Fabrication Work & Specifications (${o.totalUnits} Units)
+        Fabrication Work &amp; Specifications (${o.totalUnits} Units)
       </div>
       ${items.map((it, idx) => `
         <div style="padding: 0.4rem 0; border-bottom: 1px solid var(--border-color);">
-          <strong>#${idx + 1} ${escapeHtml(it.product)}</strong> [${escapeHtml(it.plan)}] — 
+          <strong>#${idx + 1} ${escapeHtml(it.product)}</strong> [${escapeHtml(it.plan)}] - 
           Teeth: <span class="tooth-tag">#${escapeHtml(it.toothNumbers || 'N/A')}</span> | 
           Shade: <strong>${escapeHtml(it.shade || 'A2')}</strong> | 
           Qty: <strong>${it.qty || 1}</strong>
@@ -381,6 +487,7 @@ function viewOrderDetails(orderId) {
   `;
 
   modal.classList.add('open');
+  if (window.refreshIcons) window.refreshIcons();
 }
 
 function printJobTicket(orderId) {
@@ -397,7 +504,7 @@ function printJobTicket(orderId) {
       <div class="ticket-header">
         <div>
           <h2 style="margin: 0; font-size: 1.4rem;">HESYRA DENTAL LABS</h2>
-          <div style="font-size: 0.85rem; color: #475569;">Central Milling & CAD Centre, Nagpur • 48-Hour Delivery Commitment</div>
+          <div style="font-size: 0.85rem; color: #475569;">Central Milling &amp; CAD Centre, Nagpur • 48-Hour Delivery Commitment</div>
         </div>
         <div style="text-align: right;">
           <div style="font-size: 1.4rem; font-weight: 800; color: #1e3a8a;">${escapeHtml(o.orderId)}</div>
@@ -418,7 +525,7 @@ function printJobTicket(orderId) {
         <div style="font-weight: 800; font-size: 0.9rem; margin-bottom: 0.4rem;">FABRICATION WORK (${o.totalUnits} UNITS):</div>
         ${items.map(it => `
           <div style="font-size: 0.9rem; margin-bottom: 3px;">
-            • <strong>${escapeHtml(it.product)}</strong> (${escapeHtml(it.plan)}) | Teeth: <strong>#${escapeHtml(it.toothNumbers || '')}</strong> | Shade: <strong>${escapeHtml(it.shade)}</strong> | Qty: ${it.qty || 1}
+              <strong>${escapeHtml(it.product)}</strong> (${escapeHtml(it.plan)}) | Teeth: <strong>#${escapeHtml(it.toothNumbers || '')}</strong> | Shade: <strong>${escapeHtml(it.shade)}</strong> | Qty: ${it.qty || 1}
             ${it.lineNote ? `<span style="font-style: italic; color: #475569;"> - ${escapeHtml(it.lineNote)}</span>` : ''}
           </div>
         `).join('')}
@@ -441,59 +548,16 @@ function printJobTicket(orderId) {
   window.print();
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 window.initDashboard = initDashboard;
 window.refreshDashboardStats = refreshDashboardStats;
 window.loadOrders = loadOrders;
 window.updateOrderStatus = updateOrderStatus;
+window.confirmDeleteOrder = confirmDeleteOrder;
 window.viewOrderDetails = viewOrderDetails;
 window.printJobTicket = printJobTicket;
 
-
-window.copyBillingTextForOrder = async function(orderId) {
-  const o = allOrders.find(item => item.orderId === orderId);
-  if (!o) return;
-  let items = [];
-  try { items = JSON.parse(o.items || '[]'); } catch (e) {}
-
-  const text = window.generateBillingText ? window.generateBillingText({
-    patientName: o.patientName,
-    patientAge: o.patientAge,
-    patientSex: o.patientSex,
-    clinicName: o.clinicName,
-    primaryDoctorName: o.primaryDoctorName,
-    consultantDoctor: o.consultantDoctor,
-    consultantPhone: o.consultantPhone,
-    clinicPhone: o.clinicPhone,
-    clinicCity: o.clinicCity,
-    items,
-    clinicalNotes: o.clinicalNotes
-  }) : `Patient: ${o.patientName}\nClinic: ${o.clinicName}`;
-
-  if (window.copyBillingTextToClipboard) {
-    await window.copyBillingTextToClipboard(text);
-  } else {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch(err) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      ta.remove();
-    }
-    showToast('📋 Copied for Billing System! Ready to 1-click paste.', 'success');
-  }
-};
-
-
 /* ==========================================================================
-   GOOGLE DRIVE CLIENT SYNCHRONIZATION
+   GOOGLE DRIVE CLIENT SYNCHRONIZATION (Admin Only)
    ========================================================================== */
 
 function setupGoogleDriveSync() {
@@ -507,6 +571,7 @@ function setupGoogleDriveSync() {
 }
 
 async function checkGoogleDriveStatus() {
+  if (window.currentUser?.role !== 'admin') return;
   try {
     const res = await fetch('/api/gdrive/status');
     const data = await res.json();
@@ -548,6 +613,11 @@ function updateDriveStatusUI(status) {
 }
 
 async function triggerDriveSync() {
+  if (window.currentUser?.role !== 'admin') {
+    showToast('Permission Denied: Google Drive sync is restricted to Central Lab Administrators.', 'error');
+    return;
+  }
+
   const btnToolbar = document.getElementById('btn-sync-gdrive');
   const btnMini = document.getElementById('btn-gdrive-sync-now');
   const syncIcon = document.getElementById('sync-icon-spin');
@@ -565,13 +635,13 @@ async function triggerDriveSync() {
     if (data.success) {
       updateDriveStatusUI(data);
       if (window.showToast) {
-        window.showToast('✅ Synced to Google Drive! Hesyra_Master_Billing.xlsx & Hesyra_Field_Scan_Orders.xlsx updated.', 'success');
+        window.showToast('Synced to Google Drive! Master Billing & Field Scan Ledgers updated.', 'success');
       }
       await refreshDashboardStats();
       await loadOrders();
     } else {
       if (window.showToast) {
-        window.showToast('⚠️ Google Drive notice: ' + (data.message || 'Check drive connection'), 'warning');
+        window.showToast('Google Drive notice: ' + (data.error || data.message || 'Check drive connection'), 'warning');
       }
     }
   } catch (err) {

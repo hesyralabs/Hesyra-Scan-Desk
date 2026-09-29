@@ -13,6 +13,14 @@ const {
   getDriveStatus,
   startPeriodicSync
 } = require('./gdriveSyncService');
+const {
+  loginUser,
+  validateSession,
+  destroySession,
+  changePassword,
+  requireAuth,
+  requireAdmin
+} = require('./authService');
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -37,6 +45,61 @@ const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
+
+
+// --- AUTHENTICATION API (Public endpoints) ---
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { username, password, rememberMe } = req.body;
+    const result = loginUser(username, password, rememberMe !== false);
+    if (!result.success) {
+      return res.status(401).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/auth/me', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  let token = null;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  }
+  const session = validateSession(token);
+  if (!session) {
+    return res.status(401).json({ success: false, error: 'Not authenticated' });
+  }
+  res.json({ success: true, user: session });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  let token = null;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  }
+  if (token) destroySession(token);
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+app.post('/api/auth/change-password', requireAuth, (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const result = changePassword(req.user.userId, oldPassword, newPassword);
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Protect all following /api routes with requireAuth middleware
+app.use('/api', requireAuth);
 
 // --- CLINICS API (No username or portal ID asked) ---
 
@@ -181,7 +244,7 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
     if (!items.length) {
       items = [{
         product: b.primaryProduct || 'Permanent Crown',
-        plan: b.primaryPlan || 'Hesyra Pro (5 Yr Warranty) - 950',
+        plan: b.primaryPlan || 'Ceramic Crown — 950',
         qty: parseInt(b.qty, 10) || 1,
         toothNumbers: b.toothNumbers || '',
         shade: b.shade || 'A2',
@@ -238,7 +301,7 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
       toothNumbers,
       shade,
       clinicalNotes: b.clinicalNotes || '',
-      techName: b.techName || 'Rahul Sharma',
+      techName: (req.user && req.user.role === 'tech') ? req.user.fullName : (b.techName || req.user?.fullName || 'Field Scan Tech'),
       techPhone: b.techPhone || '',
       scannerModel: b.scannerModel || 'Medit i700',
       scanLink: b.scanLink || '',
@@ -262,7 +325,7 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
   }
 });
 
-app.patch('/api/orders/:id/status', (req, res) => {
+app.patch('/api/orders/:id/status', requireAdmin, (req, res) => {
   try {
     const { status } = req.body;
     const nowIso = new Date().toISOString();
@@ -283,7 +346,7 @@ app.patch('/api/orders/:id/status', (req, res) => {
   }
 });
 
-app.delete('/api/orders/:id', (req, res) => {
+app.delete('/api/orders/:id', requireAdmin, (req, res) => {
   try {
     db.prepare('DELETE FROM orders WHERE id = ? OR orderId = ?').run(req.params.id, req.params.id);
     syncAllToGoogleDrive().catch(err => console.warn('[GDrive Sync on Delete Notice]:', err.message));
@@ -295,7 +358,7 @@ app.delete('/api/orders/:id', (req, res) => {
 
 // --- GOOGLE DRIVE & MASTER EXCEL API ---
 
-app.get('/api/gdrive/status', (req, res) => {
+app.get('/api/gdrive/status', requireAdmin, (req, res) => {
   try {
     const status = getDriveStatus();
     res.json({ success: true, ...status });
@@ -304,7 +367,7 @@ app.get('/api/gdrive/status', (req, res) => {
   }
 });
 
-app.post('/api/gdrive/sync', async (req, res) => {
+app.post('/api/gdrive/sync', requireAdmin, async (req, res) => {
   try {
     const status = await syncAllToGoogleDrive();
     res.json({ success: true, ...status });
@@ -313,7 +376,7 @@ app.post('/api/gdrive/sync', async (req, res) => {
   }
 });
 
-app.post('/api/gdrive/import-clinics', (req, res) => {
+app.post('/api/gdrive/import-clinics', requireAdmin, (req, res) => {
   try {
     const result = syncClinicsFromBillingDb();
     res.json({ success: true, ...result });
@@ -324,7 +387,7 @@ app.post('/api/gdrive/import-clinics', (req, res) => {
 
 // --- EXCEL EXPORT (DOWNLOAD) ---
 
-app.get('/api/export/excel', async (req, res) => {
+app.get('/api/export/excel', requireAdmin, async (req, res) => {
   try {
     const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
     const wb = await generateOrdersExcel(orders);
@@ -377,7 +440,7 @@ app.get('/api/stats', (req, res) => {
 
 // --- SETTINGS API ---
 
-app.get('/api/settings', (req, res) => {
+app.get('/api/settings', requireAdmin, (req, res) => {
   res.json({
     success: true,
     settings: {
@@ -388,7 +451,7 @@ app.get('/api/settings', (req, res) => {
   });
 });
 
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', requireAdmin, (req, res) => {
   const { google_sheet_webhook_url, gdrive_folder_path } = req.body;
   if (google_sheet_webhook_url !== undefined) setSetting('google_sheet_webhook_url', google_sheet_webhook_url);
   if (gdrive_folder_path !== undefined) setSetting('gdrive_folder_path', gdrive_folder_path);
@@ -399,7 +462,7 @@ app.get('/api/settings/google-script', (req, res) => {
   res.json({ success: true, script: getGoogleAppsScriptTemplate() });
 });
 
-app.post('/api/settings/test-google', async (req, res) => {
+app.post('/api/settings/test-google', requireAdmin, async (req, res) => {
   try {
     await testGoogleWebhook(req.body.url);
     res.json({ success: true, message: 'Google Sheets reachable!' });
