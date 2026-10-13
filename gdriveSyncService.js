@@ -403,11 +403,12 @@ async function syncAllToGoogleDrive() {
     fs.mkdirSync(targetDir, { recursive: true });
   }
 
-  // 1. Fetch current orders
+  // 1. Fetch current orders and clinics
   const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
+  const clinics = db.prepare('SELECT * FROM clinics ORDER BY clinicName ASC').all();
 
-  // 2. Generate and write Hesyra_Field_Scan_Orders.xlsx
-  const scanOrdersWb = await generateOrdersExcel(orders);
+  // 2. Generate and write Hesyra_Field_Scan_Orders.xlsx (with Orders & Clinic Details sheets)
+  const scanOrdersWb = await generateOrdersExcel(orders, clinics);
   const scanOrdersTarget = path.join(targetDir, 'Hesyra_Field_Scan_Orders.xlsx');
   const scanOrdersLocalMirror = path.join(LOCAL_MIRROR_PATH, 'Hesyra_Field_Scan_Orders.xlsx');
 
@@ -415,7 +416,14 @@ async function syncAllToGoogleDrive() {
     fs.mkdirSync(LOCAL_MIRROR_PATH, { recursive: true });
   }
 
-  await scanOrdersWb.xlsx.writeFile(scanOrdersTarget);
+  let scanFileNotice = '';
+  try {
+    await scanOrdersWb.xlsx.writeFile(scanOrdersTarget);
+  } catch (scanErr) {
+    console.warn('[Google Drive Sync] Scan workbook write notice (file may be open in Excel):', scanErr.message);
+    scanFileNotice = `Scan workbook busy in Excel (${scanErr.message})`;
+  }
+
   // Mirror locally
   try {
     await scanOrdersWb.xlsx.writeFile(scanOrdersLocalMirror);

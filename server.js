@@ -158,6 +158,7 @@ app.post('/api/clinics', (req, res) => {
     });
 
     const savedClinic = db.prepare('SELECT * FROM clinics WHERE id = ?').get(info.lastInsertRowid);
+    syncAllToGoogleDrive().catch(err => console.warn('[GDrive Sync on Clinic Notice]:', err.message));
     res.status(201).json({ success: true, clinic: savedClinic });
   } catch (err) {
     console.error('POST /api/clinics error:', err);
@@ -390,7 +391,8 @@ app.post('/api/gdrive/import-clinics', requireAdmin, (req, res) => {
 app.get('/api/export/excel', requireAdmin, async (req, res) => {
   try {
     const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
-    const wb = await generateOrdersExcel(orders);
+    const clinics = db.prepare('SELECT * FROM clinics ORDER BY clinicName ASC').all();
+    const wb = await generateOrdersExcel(orders, clinics);
     const filename = `Hesyra-Crown-Scan-Orders-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

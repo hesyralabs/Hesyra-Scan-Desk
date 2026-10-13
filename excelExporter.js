@@ -1,13 +1,196 @@
-﻿const ExcelJS = require('exceljs');
+const ExcelJS = require('exceljs');
 
 /**
- * Generate formatted Excel (.xlsx) workbook without patient ref ID, clinic username or portal ID
+ * Helper to set KPI styled cells
  */
-async function generateOrdersExcel(orders) {
+function setKpi(cell, text, borderColor) {
+  cell.value = text;
+  cell.font = { name: 'Segoe UI', size: 10.5, bold: true, color: { argb: 'FF0F172A' } };
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+  cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  cell.border = {
+    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    left: { style: 'medium', color: { argb: borderColor } },
+    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+  };
+}
+
+/**
+ * Build Sheet 2: Clinic Details & Client Doctors Directory
+ */
+function addClinicsWorksheet(wb, clinics = [], orders = []) {
+  const ws = wb.addWorksheet('Clinic Details', {
+    views: [{ state: 'frozen', xSplit: 0, ySplit: 5 }]
+  });
+
+  const THEME = {
+    brandPrimary: '1E3A8A',
+    subBar: '1E293B',
+    headerBg: '0F172A'
+  };
+
+  // Row 1: Title Banner
+  ws.mergeCells('A1:L1');
+  const title = ws.getCell('A1');
+  title.value = 'HESYRA DENTAL LABS - REGISTERED CLINICS & CLIENT DOCTORS DIRECTORY';
+  title.font = { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+  title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: THEME.brandPrimary } };
+  title.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  ws.getRow(1).height = 34;
+
+  // Row 2: Subtitle
+  ws.mergeCells('A2:L2');
+  const sub = ws.getCell('A2');
+  const genDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  sub.value = `Exported on: ${genDate} IST | Clinical Partner Network & Account Directory | Nagpur Central Lab`;
+  sub.font = { name: 'Segoe UI', size: 9.5, italic: true, color: { argb: 'FFCBD5E1' } };
+  sub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: THEME.subBar } };
+  sub.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  ws.getRow(2).height = 20;
+
+  // Row 3 & 4: KPI Summary Cards
+  const totalClinics = clinics.length;
+  const uniqueDoctors = new Set(clinics.map(c => (c.primaryDoctorName || '').trim()).filter(Boolean)).size;
+  const uniqueCities = new Set(clinics.map(c => (c.city || '').trim()).filter(Boolean)).size;
+  const totalOrders = orders.length;
+
+  ws.mergeCells('A3:C4');
+  setKpi(ws.getCell('A3'), `Total Clinics Registered\n${totalClinics} Active Clinics`, 'FF0284C7');
+
+  ws.mergeCells('D3:F4');
+  setKpi(ws.getCell('D3'), `Registered Doctors\n${uniqueDoctors} Primary Doctors`, 'FF10B981');
+
+  ws.mergeCells('G3:I4');
+  setKpi(ws.getCell('G3'), `Network Coverage\n${uniqueCities} Cities / Districts`, 'FF8B5CF6');
+
+  ws.mergeCells('J3:L4');
+  setKpi(ws.getCell('J3'), `Associated Scan Orders\n${totalOrders} Total Orders`, 'FFF59E0B');
+
+  // Row 5: Column Headers
+  const columns = [
+    { header: 'Clinic Name', width: 32 },
+    { header: 'Primary Doctor Name', width: 25 },
+    { header: 'Partner / Assoc Doctors', width: 26 },
+    { header: 'Phone / WhatsApp', width: 18 },
+    { header: 'Email Address', width: 24 },
+    { header: 'Full Address', width: 42 },
+    { header: 'City', width: 16 },
+    { header: 'State', width: 16 },
+    { header: 'PIN Code', width: 12 },
+    { header: 'GSTIN', width: 18 },
+    { header: 'Credit Terms', width: 15 },
+    { header: 'Total Orders Logged', width: 18 }
+  ];
+
+  const headerRow = ws.getRow(5);
+  headerRow.height = 28;
+
+  columns.forEach((col, idx) => {
+    const colNum = idx + 1;
+    const cell = headerRow.getCell(colNum);
+    cell.value = col.header;
+    cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: THEME.headerBg } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    cell.border = {
+      top: { style: 'medium', color: { argb: 'FF0F172A' } },
+      bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+      left: { style: 'thin', color: { argb: 'FF334155' } },
+      right: { style: 'thin', color: { argb: 'FF334155' } }
+    };
+    ws.getColumn(colNum).width = col.width;
+  });
+
+  // Count orders per clinic / doctor
+  const ordersCountMap = {};
+  orders.forEach(o => {
+    const cName = (o.clinicName || '').trim().toLowerCase();
+    const dName = (o.primaryDoctorName || '').trim().toLowerCase();
+    if (cName) ordersCountMap[cName] = (ordersCountMap[cName] || 0) + 1;
+    if (dName && dName !== cName) ordersCountMap[dName] = (ordersCountMap[dName] || 0) + 1;
+  });
+
+  clinics.forEach((c, rIdx) => {
+    const rowNum = 6 + rIdx;
+    const row = ws.getRow(rowNum);
+    row.height = 24;
+    const isEven = rIdx % 2 === 0;
+    const baseBg = isEven ? 'FFFFFFFF' : 'FFF8FAFC';
+
+    const cKey = (c.clinicName || '').trim().toLowerCase();
+    const dKey = (c.primaryDoctorName || '').trim().toLowerCase();
+    const ordersPlaced = ordersCountMap[cKey] || ordersCountMap[dKey] || 0;
+
+    const rowData = [
+      c.clinicName || '',
+      c.primaryDoctorName || '',
+      c.partnerDoctors || '-',
+      c.phone || '',
+      c.email || '-',
+      c.fullAddress || '',
+      c.city || 'Nagpur',
+      c.state || 'Maharashtra',
+      c.pinCode || '',
+      c.gstin || 'N/A',
+      c.creditDays ? `${c.creditDays} Days` : '15 Days',
+      ordersPlaced
+    ];
+
+    rowData.forEach((val, cIdx) => {
+      const colNum = cIdx + 1;
+      const cell = row.getCell(colNum);
+      cell.value = val;
+      cell.font = { name: 'Segoe UI', size: 9.5 };
+      cell.alignment = { vertical: 'middle', horizontal: 'left' };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: baseBg } };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+
+      if (colNum === 1) {
+        cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: 'FF0F172A' } };
+      }
+
+      if ([4, 7, 8, 9, 10, 11, 12].includes(colNum)) {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      }
+
+      if (colNum === 12 && ordersPlaced > 0) {
+        cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: 'FF15803D' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCFCE7' } };
+      }
+    });
+  });
+
+  ws.autoFilter = {
+    from: { row: 5, column: 1 },
+    to: { row: Math.max(5 + clinics.length, 5), column: columns.length }
+  };
+}
+
+/**
+ * Generate formatted Excel (.xlsx) workbook with Orders and Clinic Details sheets
+ */
+async function generateOrdersExcel(orders = [], clinics = null) {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Hesyra Dental Labs - Field Scan Desk';
   wb.created = new Date();
 
+  // If clinics not provided, query from database
+  if (!clinics) {
+    try {
+      const { db } = require('./database');
+      clinics = db.prepare('SELECT * FROM clinics ORDER BY clinicName ASC').all();
+    } catch (e) {
+      clinics = [];
+    }
+  }
+
+  // --- SHEET 1: Field Scan Orders ---
   const ws = wb.addWorksheet('Field Scan Orders', {
     views: [{ state: 'frozen', xSplit: 0, ySplit: 5 }]
   });
@@ -20,7 +203,7 @@ async function generateOrdersExcel(orders) {
   // Row 1: Title Banner
   ws.mergeCells('A1:R1');
   const title = ws.getCell('A1');
-  title.value = 'HESYRA DENTAL LABS — 48-HOUR FIELD SCAN ORDERS & CLINICAL ENTRY LEDGER';
+  title.value = 'HESYRA DENTAL LABS - 48-HOUR FIELD SCAN ORDERS & CLINICAL ENTRY LEDGER';
   title.font = { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
   title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: THEME.brandPrimary } };
   title.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
@@ -59,19 +242,6 @@ async function generateOrdersExcel(orders) {
 
   ws.mergeCells('L3:O4');
   setKpi(ws.getCell('L3'), `Dispatched / Delivered\n${completedCount} Completed`, 'FF16A34A');
-
-  function setKpi(cell, text, borderColor) {
-    cell.value = text;
-    cell.font = { name: 'Segoe UI', size: 10.5, bold: true, color: { argb: 'FF0F172A' } };
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-    cell.border = {
-      top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-      left: { style: 'medium', color: { argb: borderColor } },
-      bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-      right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
-    };
-  }
 
   // Row 5: Column Headers (NO Username, NO Portal ID, NO Patient/Chart ID)
   const columns = [
@@ -227,8 +397,11 @@ async function generateOrdersExcel(orders) {
 
   ws.autoFilter = {
     from: { row: 5, column: 1 },
-    to: { row: 5, column: columns.length }
+    to: { row: Math.max(5 + orders.length, 5), column: columns.length }
   };
+
+  // --- SHEET 2: Clinic Details ---
+  addClinicsWorksheet(wb, clinics, orders);
 
   return wb;
 }
