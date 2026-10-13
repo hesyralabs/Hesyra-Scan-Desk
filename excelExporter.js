@@ -350,7 +350,15 @@ async function generateOrdersExcel(orders = [], clinics = null) {
       }
     } catch (e) {}
 
-    if (prodCategory.toLowerCase().includes('aligner') && (!archSets || archSets === '-')) {
+    // Retainers, Splints, Clear Aligners are transparent appliances — never have a tooth VITA shade
+    const prodLower = prodCategory.toLowerCase();
+    const isClearAppliance = prodLower.includes('retainer') || prodLower.includes('aligner') || prodLower.includes('splint') || prodLower.includes('guard') || prodLower.includes('appliance');
+    if (isClearAppliance) {
+      shadeVal = '-';
+      toothNum = '-';
+    }
+
+    if (prodLower.includes('aligner') && (!archSets || archSets === '-')) {
       archSets = `${qtyVal} Sets`;
     }
 
