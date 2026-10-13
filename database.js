@@ -130,6 +130,14 @@ function syncArchivedOrders() {
 // Run initial archive check
 syncArchivedOrders();
 
+// Database Normalization Migration: Crowns strictly Zirconia Crown or Ceramic Crown
+try {
+  db.prepare("UPDATE orders SET primaryProduct = 'Zirconia Crown', primaryPlan = '-' WHERE primaryProduct = 'Permanent Crown' AND (clinicalNotes LIKE '%ZC%' OR toothNumbers LIKE '%35%' OR toothNumbers LIKE '%15, 16%' OR patientName = 'Martand Raghuvanshi' OR patientName = 'Riya')").run();
+  db.prepare("UPDATE orders SET primaryProduct = 'Ceramic Crown', primaryPlan = '-' WHERE primaryProduct = 'Permanent Crown'").run();
+  db.prepare("UPDATE orders SET toothNumbers = REPLACE(toothNumbers, '#', '') WHERE toothNumbers LIKE '#%'").run();
+} catch (e) {}
+
+
 // Auto-seed default approved clinics & cases if table is empty (e.g. on fresh cloud deployment)
 try {
   const fs = require('fs');
