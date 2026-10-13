@@ -201,7 +201,7 @@ async function generateOrdersExcel(orders = [], clinics = null) {
   };
 
   // Row 1: Title Banner
-  ws.mergeCells('A1:R1');
+  ws.mergeCells('A1:T1');
   const title = ws.getCell('A1');
   title.value = 'HESYRA DENTAL LABS - 48-HOUR FIELD SCAN ORDERS & CLINICAL ENTRY LEDGER';
   title.font = { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -210,7 +210,7 @@ async function generateOrdersExcel(orders = [], clinics = null) {
   ws.getRow(1).height = 34;
 
   // Row 2: Subtitle
-  ws.mergeCells('A2:R2');
+  ws.mergeCells('A2:T2');
   const sub = ws.getCell('A2');
   const genDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   sub.value = `Exported on: ${genDate} IST | 48-Hour Crown Delivery SLA Tracking | Nagpur Central Lab`;
@@ -231,38 +231,40 @@ async function generateOrdersExcel(orders = [], clinics = null) {
   const activeCount = orders.filter(o => !['Dispatched', 'Delivered', 'Cancelled'].includes(o.status)).length;
   const completedCount = orders.filter(o => ['Dispatched', 'Delivered'].includes(o.status)).length;
 
-  ws.mergeCells('A3:C4');
+  ws.mergeCells('A3:D4');
   setKpi(ws.getCell('A3'), `Total Cases Enrolled\n${total} Cases (${totalUnits} Units)`, 'FF0284C7');
 
-  ws.mergeCells('D3:G4');
-  setKpi(ws.getCell('D3'), `48h SLA Critical (<12h Left)\n${urgentCount} Urgent Cases`, 'FFDC2626');
+  ws.mergeCells('E3:H4');
+  setKpi(ws.getCell('E3'), `48h SLA Critical (<12h Left)\n${urgentCount} Urgent Cases`, 'FFDC2626');
 
-  ws.mergeCells('H3:K4');
-  setKpi(ws.getCell('H3'), `Active in Lab Production\n${activeCount} Cases`, 'FFD97706');
+  ws.mergeCells('I3:L4');
+  setKpi(ws.getCell('I3'), `Active in Lab Production\n${activeCount} Cases`, 'FFD97706');
 
-  ws.mergeCells('L3:O4');
-  setKpi(ws.getCell('L3'), `Dispatched / Delivered\n${completedCount} Completed`, 'FF16A34A');
+  ws.mergeCells('M3:T4');
+  setKpi(ws.getCell('M3'), `Dispatched / Delivered\n${completedCount} Completed`, 'FF16A34A');
 
-  // Row 5: Column Headers (NO Username, NO Portal ID, NO Patient/Chart ID)
+  // Row 5: Enhanced Granular Columns (Dedicated Tooth, Shade, Arch/Sets columns!)
   const columns = [
-    { header: 'Order ID', width: 17 },
+    { header: 'Order / Case Ref', width: 22 },
     { header: 'Scan Date & Time', width: 20 },
-    { header: 'Promised Delivery (48h Deadline)', width: 25 },
-    { header: '48h SLA Status', width: 22 },
+    { header: 'Promised Delivery (48h)', width: 22 },
+    { header: '48h SLA Status', width: 20 },
     { header: 'Clinic Name', width: 28 },
     { header: 'Primary Doctor Name', width: 24 },
-    { header: 'Clinic Phone', width: 16 },
+    { header: 'Clinic Phone / WhatsApp', width: 18 },
     { header: 'City / District', width: 15 },
-    { header: 'Patient Name', width: 24 },
-    { header: 'Age / Sex', width: 14 },
-    { header: 'Consultant Doctor', width: 24 },
-    { header: 'Fabrication Items (Product & Specs)', width: 38 },
-    { header: 'Total Units', width: 12 },
-    { header: 'Special Shade / Remake / Delivery Notes', width: 35 },
+    { header: 'Patient Name', width: 22 },
+    { header: 'Age / Gender', width: 14 },
+    { header: 'Prosthesis / Category', width: 24 },
+    { header: 'Material / Plan Tier', width: 28 },
+    { header: 'Tooth Number(s) [FDI]', width: 19 },
+    { header: 'Target Arch / Sets Count', width: 22 },
+    { header: 'Color Shade (VITA)', width: 16 },
+    { header: 'Units / Qty', width: 13 },
+    { header: 'Special Notes / Job Ref', width: 34 },
     { header: 'Production Stage', width: 18 },
     { header: 'Field Technician', width: 18 },
-    { header: 'Scanner Hardware', width: 18 },
-    { header: 'Cloud Scan Link', width: 26 }
+    { header: 'Scanner Hardware', width: 18 }
   ];
 
   const headerRow = ws.getRow(5);
@@ -326,18 +328,30 @@ async function generateOrdersExcel(orders = [], clinics = null) {
       }
     }
 
-    let itemsDesc = '';
+    // Parse granular items
+    let prodCategory = o.primaryProduct || 'Prosthesis';
+    let prodPlan = o.primaryPlan || '-';
+    let toothNum = o.toothNumbers || '-';
+    let archSets = '-';
+    let shadeVal = o.shade || '-';
+    let qtyVal = parseInt(o.totalUnits, 10) || 1;
+
     try {
       const parsed = JSON.parse(o.items || '[]');
       if (Array.isArray(parsed) && parsed.length) {
-        itemsDesc = parsed.map(item => {
-          const spec = item.arch ? `Arch: ${item.arch}` : (item.toothNumbers ? `Teeth: #${item.toothNumbers}` : '');
-          const shadePart = item.shade ? ` | Shade: ${item.shade}` : '';
-          return `${item.product || ''} [${item.plan || ''}] - Qty: ${item.qty || 1} | ${spec}${shadePart} ${item.lineNote ? `(${item.lineNote})` : ''}`;
-        }).join('; ');
+        const it = parsed[0];
+        if (it.product) prodCategory = it.product;
+        if (it.plan) prodPlan = it.plan;
+        if (it.toothNumbers && it.toothNumbers !== '-') toothNum = it.toothNumbers;
+        if (it.archTarget && it.archTarget !== '-') archSets = it.archTarget;
+        else if (it.arch) archSets = `${it.arch} Arch`;
+        if (it.shade && it.shade !== '-') shadeVal = it.shade;
+        if (it.qty) qtyVal = it.qty;
       }
-    } catch (e) {
-      itemsDesc = `${o.primaryProduct || ''} - Teeth: #${o.toothNumbers || ''} | Shade: ${o.shade || ''}`;
+    } catch (e) {}
+
+    if (prodCategory.toLowerCase().includes('aligner') && (!archSets || archSets === '-')) {
+      archSets = `${qtyVal} Sets`;
     }
 
     const rowData = [
@@ -351,14 +365,16 @@ async function generateOrdersExcel(orders = [], clinics = null) {
       o.clinicCity || 'Nagpur',
       o.patientName || '',
       `${o.patientAge || ''} / ${o.patientSex || ''}`,
-      o.consultantDoctor || '-',
-      itemsDesc,
-      parseInt(o.totalUnits, 10) || 1,
+      prodCategory,
+      prodPlan,
+      toothNum,
+      archSets,
+      shadeVal,
+      qtyVal,
       o.clinicalNotes || '-',
       o.status || 'Scanned',
-      o.techName || '',
-      o.scannerModel || 'Medit i700',
-      o.scanLink || ''
+      o.techName || 'Meera Joshi',
+      o.scannerModel || 'Medit i700'
     ];
 
     rowData.forEach((val, cIdx) => {
@@ -375,7 +391,8 @@ async function generateOrdersExcel(orders = [], clinics = null) {
         right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
       };
 
-      if ([1, 2, 3, 4, 10, 13, 15].includes(colNum)) {
+      // Alignment rules
+      if ([1, 2, 3, 4, 7, 8, 10, 13, 14, 15, 16, 18, 19, 20].includes(colNum)) {
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
       }
 
@@ -388,9 +405,25 @@ async function generateOrdersExcel(orders = [], clinics = null) {
         cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: timerFont } };
       }
 
-      if (colNum === 18 && val && String(val).startsWith('http')) {
-        cell.value = { text: 'Open Scan Files ↗', hyperlink: String(val) };
-        cell.font = { name: 'Segoe UI', size: 9.5, color: { argb: 'FF2563EB' }, underline: true };
+      // Highlight tooth numbers
+      if (colNum === 13 && val && val !== '-') {
+        cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+      }
+
+      // Highlight Arch / Sets
+      if (colNum === 14 && val && val !== '-') {
+        cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: 'FF0284C7' } };
+      }
+
+      // Highlight Shade
+      if (colNum === 15 && val && val !== '-') {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
+        cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFB45309' } };
+      }
+
+      // Highlight Units
+      if (colNum === 16) {
+        cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF0F172A' } };
       }
     });
   });
