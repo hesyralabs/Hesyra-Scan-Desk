@@ -226,7 +226,7 @@ async function generateOrdersExcel(orders = [], clinics = null) {
   const urgentCount = orders.filter(o => {
     if (['Dispatched', 'Delivered', 'Cancelled'].includes(o.status)) return false;
     const diffHours = (new Date(o.deliveryDeadline) - now) / (1000 * 60 * 60);
-    return diffHours <= 12;
+    return diffHours >= 0 && diffHours <= 12;
   }).length;
   const activeCount = orders.filter(o => !['Dispatched', 'Delivered', 'Cancelled'].includes(o.status)).length;
   const completedCount = orders.filter(o => ['Dispatched', 'Delivered'].includes(o.status)).length;
@@ -298,33 +298,36 @@ async function generateOrdersExcel(orders = [], clinics = null) {
     let timerBg = baseBg;
     let timerFont = 'FF0F172A';
 
+    const deadline = new Date(o.deliveryDeadline);
+    const diffMs = deadline - now;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const isPast48h = Boolean(o.isArchived || diffHours < 0);
+
     if (['Dispatched', 'Delivered'].includes(o.status)) {
-      timerStatus = `Completed (${o.status})`;
-      timerBg = 'FFDCFCE7';
-      timerFont = 'FF15803D';
-    } else {
-      const deadline = new Date(o.deliveryDeadline);
-      const diffMs = deadline - now;
-      const diffHours = diffMs / (1000 * 60 * 60);
-
-      if (diffHours < 0) {
-        const overHours = Math.abs(Math.floor(diffHours));
-        const overMins = Math.abs(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
-        timerStatus = `OVERDUE by ${overHours}h ${overMins}m`;
-        timerBg = 'FFFEE2E2';
-        timerFont = 'FF991B1B';
+      if (isPast48h) {
+        timerStatus = `Archived (${o.status})`;
+        timerBg = 'FFF1F5F9';
+        timerFont = 'FF475569';
       } else {
-        const leftH = Math.floor(diffHours);
-        const leftM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        timerStatus = `${leftH}h ${leftM}m left`;
+        timerStatus = `Completed (${o.status})`;
+        timerBg = 'FFDCFCE7';
+        timerFont = 'FF15803D';
+      }
+    } else if (isPast48h) {
+      timerStatus = 'Archived (>48h SLA)';
+      timerBg = 'FFF1F5F9';
+      timerFont = 'FF475569';
+    } else {
+      const leftH = Math.floor(diffHours);
+      const leftM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      timerStatus = `${leftH}h ${leftM}m left`;
 
-        if (leftH < 12) {
-          timerBg = 'FFFEF3C7';
-          timerFont = 'FFB45309';
-        } else {
-          timerBg = 'FFE0F2FE';
-          timerFont = 'FF0369A1';
-        }
+      if (leftH < 12) {
+        timerBg = 'FFFEF3C7';
+        timerFont = 'FFB45309';
+      } else {
+        timerBg = 'FFE0F2FE';
+        timerFont = 'FF0369A1';
       }
     }
 
@@ -381,7 +384,7 @@ async function generateOrdersExcel(orders = [], clinics = null) {
       qtyVal,
       o.clinicalNotes || '-',
       o.status || 'Scanned',
-      o.techName || 'Meera Joshi',
+      o.techName || 'Valaya',
       o.scannerModel || 'Medit i700'
     ];
 

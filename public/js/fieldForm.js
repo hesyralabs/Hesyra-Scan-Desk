@@ -750,7 +750,7 @@ function setupFormSubmit() {
       fd.append('items', JSON.stringify(items));
       fd.append('clinicalNotes', document.getElementById('input-clinical-notes').value.trim());
 
-      fd.append('techName', (window.currentUser && window.currentUser.role === 'tech') ? window.currentUser.fullName : (document.getElementById('input-tech-name')?.value || window.currentUser?.fullName || 'Field Scan Tech'));
+      fd.append('techName', (window.currentUser && window.currentUser.role === 'tech') ? window.currentUser.fullName : (document.getElementById('input-tech-name')?.value || window.currentUser?.fullName || 'Valaya'));
       fd.append('scannerModel', document.getElementById('input-scanner-model')?.value || 'Intraoral Scanner');
       fd.append('scanLink', document.getElementById('input-scan-link')?.value?.trim() || '');
 

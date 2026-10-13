@@ -49,7 +49,7 @@ function seedDefaultUsers() {
         username: 'tech',
         passwordHash: techCreds.hash,
         salt: techCreds.salt,
-        fullName: 'Field Scan Technician',
+        fullName: 'Valaya',
         role: 'tech'
       });
 

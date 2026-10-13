@@ -58,7 +58,7 @@ db.exec(`
     
     clinicalNotes TEXT,
     
-    techName TEXT DEFAULT 'Field Tech',
+    techName TEXT DEFAULT 'Valaya',
     techPhone TEXT,
     scannerModel TEXT DEFAULT 'Medit i700',
     scanLink TEXT,
@@ -69,7 +69,9 @@ db.exec(`
     dispatchedAt TEXT,
     deliveredAt TEXT,
     googleSynced INTEGER DEFAULT 0,
-    googleSyncedAt TEXT
+    googleSyncedAt TEXT,
+    isArchived INTEGER DEFAULT 0,
+    archivedAt TEXT
   );
 
   CREATE TABLE IF NOT EXISTS settings (
@@ -88,6 +90,9 @@ db.exec(`
     createdAt TEXT NOT NULL
   );
 
+  
+
+
   CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
     userId INTEGER NOT NULL,
@@ -99,6 +104,31 @@ db.exec(`
   );
 
 `);
+
+// Migrations: Ensure isArchived and archivedAt columns exist
+try {
+  db.exec("ALTER TABLE orders ADD COLUMN isArchived INTEGER DEFAULT 0");
+} catch (e) {}
+try {
+  db.exec("ALTER TABLE orders ADD COLUMN archivedAt TEXT");
+} catch (e) {}
+
+// Auto-archive sync helper: All cases past their 48-hour delivery deadline are archived
+function syncArchivedOrders() {
+  try {
+    const nowIso = new Date().toISOString();
+    db.prepare(`
+      UPDATE orders
+      SET isArchived = 1, archivedAt = COALESCE(archivedAt, ?)
+      WHERE isArchived = 0 AND deliveryDeadline < ?
+    `).run(nowIso, nowIso);
+  } catch (err) {
+    console.warn('[Archive Sync Notice]:', err.message);
+  }
+}
+
+// Run initial archive check
+syncArchivedOrders();
 
 // Auto-seed default approved clinics & cases if table is empty (e.g. on fresh cloud deployment)
 try {
@@ -206,6 +236,7 @@ module.exports = {
   db,
   getDeadline48h,
   generateOrderId,
+  syncArchivedOrders,
   getSetting: (key) => getSettingStmt.get(key)?.value,
   setSetting: (key, val) => setSettingStmt.run(key, String(val))
 };

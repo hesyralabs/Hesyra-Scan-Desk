@@ -3,7 +3,7 @@
  * Role-Based Access Control: Admin has full status/delete/sync power; Field Tech has read-only tracking.
  */
 let currentOrders = [];
-let activeFilters = { search: '', status: 'all', clinicId: 'all', datePreset: 'all' };
+let activeFilters = { search: '', status: 'all', clinicId: 'all', datePreset: 'all', archive: 'active' };
 let timerInterval = null;
 
 function getStatusIcon(status) {
@@ -43,7 +43,7 @@ async function refreshDashboardStats() {
     if (data.success && data.stats) {
       const s = data.stats;
       const elTotal = document.getElementById('stat-total-cases') || document.getElementById('stat-today-cases');
-      if (elTotal) elTotal.textContent = s.totalOrders || s.todayOrders || 0;
+      if (elTotal) elTotal.textContent = s.totalOrders || 0;
 
       const elUrgent = document.getElementById('stat-sla-urgent') || document.getElementById('stat-urgent-cases');
       if (elUrgent) elUrgent.textContent = s.urgentCount || 0;
@@ -51,8 +51,21 @@ async function refreshDashboardStats() {
       const elActive = document.getElementById('stat-active-cases');
       if (elActive) elActive.textContent = s.activeCases || 0;
 
+      const elArchived = document.getElementById('stat-archived-cases');
+      if (elArchived) elArchived.textContent = s.archivedCount || 0;
+
       const elDispatched = document.getElementById('stat-dispatched-today');
       if (elDispatched) elDispatched.textContent = s.dispatchedCount || 0;
+
+      // Update segmented pill count tags
+      const pillActive = document.getElementById('pill-active-count');
+      if (pillActive) pillActive.textContent = s.activeCases || 0;
+
+      const pillArchived = document.getElementById('pill-archived-count');
+      if (pillArchived) pillArchived.textContent = s.archivedCount || 0;
+
+      const pillAll = document.getElementById('pill-all-count');
+      if (pillAll) pillAll.textContent = s.totalOrders || 0;
     }
   } catch (err) {}
 }
@@ -63,6 +76,7 @@ async function loadOrders() {
 
   try {
     const p = new URLSearchParams();
+    p.set('archive', activeFilters.archive || 'active');
     if (activeFilters.search) p.set('search', activeFilters.search);
     if (activeFilters.status !== 'all') p.set('status', activeFilters.status);
     if (activeFilters.clinicId !== 'all') p.set('clinicId', activeFilters.clinicId);
@@ -88,15 +102,34 @@ function renderOrdersTable(orders) {
   if (countEl) countEl.textContent = `${orders.length} Case${orders.length === 1 ? '' : 's'} Listed`;
 
   if (!orders || orders.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="8" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-          <div style="margin-bottom: 0.65rem;"><i data-lucide="clipboard-list" class="lucide-hero" style="stroke-width: 1.5px; opacity: 0.5;"></i></div>
-          <div style="font-weight: 700; color: var(--text-main);">No cases found</div>
-          <div style="font-size: 0.85rem;">Technicians can enroll cases chairside using the "Field Scanner" tab.</div>
-        </td>
-      </tr>
-    `;
+    if (activeFilters.archive === 'active') {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+            <div style="margin-bottom: 0.75rem;"><i data-lucide="shield-check" class="lucide-hero" style="stroke-width: 1.5px; opacity: 0.7; color: #0d9488;"></i></div>
+            <div style="font-weight: 800; color: var(--text-main); font-size: 1.05rem;">All Active Cases Cleared!</div>
+            <div style="font-size: 0.86rem; margin-top: 5px; color: var(--text-muted); max-width: 480px; margin-left: auto; margin-right: auto;">
+              No pending cases within the 48-hour SLA turnaround window. Cases older than 48 hours have been archived.
+            </div>
+            <div style="margin-top: 1.25rem; display: flex; gap: 0.75rem; justify-content: center;">
+              <button type="button" class="btn btn-secondary" style="font-size: 0.82rem;" onclick="switchToArchiveView()">
+                <i data-lucide="archive"></i> View Archived Cases (&gt;48h)
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    } else {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+            <div style="margin-bottom: 0.65rem;"><i data-lucide="clipboard-list" class="lucide-hero" style="stroke-width: 1.5px; opacity: 0.5;"></i></div>
+            <div style="font-weight: 700; color: var(--text-main);">No cases found in this view</div>
+            <div style="font-size: 0.85rem;">Try clearing your filters or select a different view mode.</div>
+          </td>
+        </tr>
+      `;
+    }
     return;
   }
 
@@ -140,18 +173,27 @@ function renderOrdersTable(orders) {
       `;
     }
 
-    // Actions Cell: Admin gets delete button; Tech does not
+    // Actions Cell: Admin gets archive toggle & delete button; Tech gets read-only
     let actionsHtml = `
       <div class="action-btns-group">
         <button type="button" class="btn-icon-action" title="View Details" onclick="viewOrderDetails('${o.orderId}')"><i data-lucide="eye"></i></button>
         <button type="button" class="btn-icon-action" title="Print Lab Job Card" onclick="printJobTicket('${o.orderId}')"><i data-lucide="printer"></i></button>
-        ${isAdmin ? `<button type="button" class="btn-icon-action btn-delete-order" title="Delete Case (Admin Only)" onclick="confirmDeleteOrder('${o.orderId}')" style="color: #dc2626;"><i data-lucide="trash-2"></i></button>` : ''}
+        ${isAdmin ? `
+          <button type="button" class="btn-icon-action" title="${isCaseArchived ? 'Restore to Active SLA' : 'Archive Case (>48h)'}" onclick="toggleArchiveOrder('${o.orderId}', ${isCaseArchived ? 0 : 1})" style="color: #64748b;">
+            <i data-lucide="${isCaseArchived ? 'archive-restore' : 'archive'}"></i>
+          </button>
+          <button type="button" class="btn-icon-action btn-delete-order" title="Delete Case (Admin Only)" onclick="confirmDeleteOrder('${o.orderId}')" style="color: #dc2626;">
+            <i data-lucide="trash-2"></i>
+          </button>
+        ` : ''}
         ${o.scanLink ? `<a href="${escapeHtml(o.scanLink)}" target="_blank" rel="noopener noreferrer" class="btn-icon-action" title="Open Scan Link"><i data-lucide="external-link"></i></a>` : ''}
       </div>
     `;
 
+    const isCaseArchived = Boolean(o.isArchived || new Date(o.deliveryDeadline) < new Date());
+
     return `
-      <tr data-order-id="${o.orderId}" data-deadline="${o.deliveryDeadline}" data-status="${o.status}">
+      <tr data-order-id="${o.orderId}" data-deadline="${o.deliveryDeadline}" data-status="${o.status}" data-archived="${isCaseArchived ? '1' : '0'}">
         <td class="order-id-cell">
           <div style="font-weight: 800; color: #0284c7;">${escapeHtml(o.orderId)}</div>
           <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">
@@ -160,7 +202,7 @@ function renderOrdersTable(orders) {
         </td>
 
         <td class="timer-cell" id="timer-${o.orderId}">
-          ${getTimerBadgeHtml(o.deliveryDeadline, o.status)}
+          ${getTimerBadgeHtml(o.deliveryDeadline, o.status, isCaseArchived)}
         </td>
 
         <td class="clinic-cell">
@@ -202,28 +244,39 @@ function renderOrdersTable(orders) {
   else if (window.lucide) window.lucide.createIcons({ icons: window.lucide.icons });
 }
 
-function getTimerBadgeHtml(deadlineIso, status) {
-  if (['Dispatched', 'Delivered'].includes(status)) {
-    return `<span class="badge badge-delivered" style="font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="check-circle-2" class="lucide-xs"></i> Delivered (${status})</span>`;
-  }
-
+function getTimerBadgeHtml(deadlineIso, status, isArchived) {
   const deadline = new Date(deadlineIso);
   const now = new Date();
   const diffMs = deadline - now;
   const diffHours = diffMs / (1000 * 60 * 60);
+  const past48h = Boolean(isArchived || diffHours < 0);
 
-  if (diffHours < 0) {
-    const overH = Math.abs(Math.floor(diffHours));
-    const overM = Math.abs(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
+  // If past 48h SLA window, render clean neutral archive badge
+  if (past48h) {
+    if (['Dispatched', 'Delivered'].includes(status)) {
+      return `
+        <div class="timer-badge timer-archived timer-archived-delivered" title="Archived: Delivered &gt;48h ago">
+          <span class="timer-icon"><i data-lucide="check-check" class="lucide-sm"></i></span>
+          <div>
+            <div style="font-weight: 800; font-size: 0.82rem; line-height: 1;">Archived</div>
+            <div style="font-size: 0.68rem; opacity: 0.85;">Delivered &bull; &gt;48h</div>
+          </div>
+        </div>
+      `;
+    }
     return `
-      <div class="timer-badge timer-overdue">
-        <span class="timer-icon"><i data-lucide="alert-circle" class="lucide-sm"></i></span>
+      <div class="timer-badge timer-archived" title="Archived: Case older than 48h SLA">
+        <span class="timer-icon"><i data-lucide="archive" class="lucide-sm"></i></span>
         <div>
-          <div style="font-weight: 800; font-size: 0.85rem; line-height: 1;">OVERDUE</div>
-          <div style="font-size: 0.7rem;">by ${overH}h ${overM}m</div>
+          <div style="font-weight: 800; font-size: 0.82rem; line-height: 1;">Archived</div>
+          <div style="font-size: 0.68rem; opacity: 0.85;">&gt;48h Turnaround</div>
         </div>
       </div>
     `;
+  }
+
+  if (['Dispatched', 'Delivered'].includes(status)) {
+    return `<span class="badge badge-delivered" style="font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="check-circle-2" class="lucide-xs"></i> Delivered (${status})</span>`;
   }
 
   const leftH = Math.floor(diffHours);
@@ -260,9 +313,10 @@ function updateAllCountdowns() {
     const orderId = row.getAttribute('data-order-id');
     const deadline = row.getAttribute('data-deadline');
     const status = row.getAttribute('data-status');
+    const isArchived = row.getAttribute('data-archived') === '1';
     const cell = document.getElementById(`timer-${orderId}`);
     if (cell && deadline) {
-      cell.innerHTML = getTimerBadgeHtml(deadline, status);
+      cell.innerHTML = getTimerBadgeHtml(deadline, status, isArchived);
       updated = true;
     }
   });
@@ -345,7 +399,51 @@ function setupFilterListeners() {
     activeFilters.datePreset = e.target.value;
     loadOrders();
   });
+  document.querySelectorAll('.archive-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.archive-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilters.archive = btn.getAttribute('data-archive') || 'active';
+      loadOrders();
+    });
+  });
 }
+
+/**
+ * Toggle Archive Status for an Order (Admin Only)
+ */
+async function toggleArchiveOrder(orderId, setArchived) {
+  if (window.currentUser?.role !== 'admin') {
+    showToast('Permission Denied: Only Central Lab Administrators can manage case archive status.', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/orders/${orderId}/archive`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isArchived: setArchived ? 1 : 0 })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(setArchived ? `Case ${orderId} moved to Archive.` : `Case ${orderId} restored to Active.`, 'success');
+      await refreshDashboardStats();
+      await loadOrders();
+    } else {
+      showToast('Archive action failed: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (err) {
+    showToast('Network error while updating archive status.', 'error');
+  }
+}
+window.toggleArchiveOrder = toggleArchiveOrder;
+
+function switchToArchiveView() {
+  const pill = document.querySelector('.archive-pill[data-archive="archived"]');
+  if (pill) pill.click();
+}
+window.switchToArchiveView = switchToArchiveView;
+
 
 function setupExcelExport() {
   document.getElementById('btn-export-excel')?.addEventListener('click', () => {
@@ -441,7 +539,7 @@ function viewOrderDetails(orderId) {
           <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">48-Hour Delivery Commitment</div>
           <div style="font-size: 1.15rem; font-weight: 800; color: #38bdf8;">Promised By: ${new Date(o.deliveryDeadline).toLocaleString('en-IN')}</div>
         </div>
-        <div>${getTimerBadgeHtml(o.deliveryDeadline, o.status)}</div>
+        <div>${getTimerBadgeHtml(o.deliveryDeadline, o.status, isCaseArchived)}</div>
       </div>
     </div>
 

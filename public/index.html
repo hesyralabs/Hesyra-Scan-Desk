@@ -318,15 +318,7 @@
           <div class="stat-icon-wrap" style="background: #e0f2fe; color: #0284c7;"><i data-lucide="layers"></i></div>
           <div>
             <div class="stat-number" id="stat-total-cases">0</div>
-            <div class="stat-title">Total Enrolled Cases</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon-wrap" style="background: #fee2e2; color: #dc2626;"><i data-lucide="alert-triangle"></i></div>
-          <div>
-            <div class="stat-number" id="stat-sla-urgent">0</div>
-            <div class="stat-title">SLA Critical (&lt; 12h Left)</div>
+            <div class="stat-title">Total Cases</div>
           </div>
         </div>
 
@@ -334,7 +326,23 @@
           <div class="stat-icon-wrap" style="background: #fef3c7; color: #d97706;"><i data-lucide="cpu"></i></div>
           <div>
             <div class="stat-number" id="stat-active-cases">0</div>
-            <div class="stat-title">Active In Production</div>
+            <div class="stat-title">Active (≤48h SLA)</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background: #fee2e2; color: #dc2626;"><i data-lucide="alert-triangle"></i></div>
+          <div>
+            <div class="stat-number" id="stat-sla-urgent">0</div>
+            <div class="stat-title">SLA Critical (&lt;12h)</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background: #f1f5f9; color: #475569;"><i data-lucide="archive"></i></div>
+          <div>
+            <div class="stat-number" id="stat-archived-cases">0</div>
+            <div class="stat-title">Archived (&gt;48h)</div>
           </div>
         </div>
 
@@ -377,6 +385,27 @@
 
         <div class="toolbar-filter-row">
           <div class="filter-controls">
+            <!-- 48h SLA / Archive Segmented Selector -->
+            <div class="archive-segmented-group" id="archive-filter-group" title="Lab Ledger Case Filtering">
+              <button type="button" class="archive-pill active" data-archive="active">
+                <i data-lucide="zap"></i>
+                <span>Active (≤48h)</span>
+                <span class="archive-count" id="pill-active-count">0</span>
+              </button>
+              <button type="button" class="archive-pill" data-archive="archived">
+                <i data-lucide="archive"></i>
+                <span>Archived (&gt;48h)</span>
+                <span class="archive-count" id="pill-archived-count">0</span>
+              </button>
+              <button type="button" class="archive-pill" data-archive="all">
+                <i data-lucide="layers"></i>
+                <span>All Cases</span>
+                <span class="archive-count" id="pill-all-count">0</span>
+              </button>
+            </div>
+
+            <span class="filter-divider" style="display:inline-block; width: 1px; height: 22px; background: #cbd5e1; margin: 0 4px;"></span>
+
             <span class="filter-label">Filters:</span>
             <select class="filter-select" id="filter-date">
               <option value="all">All Dates</option>

@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 
-const { db, getDeadline48h, generateOrderId, getSetting, setSetting } = require('./database');
+const { db, getDeadline48h, generateOrderId, getSetting, setSetting, syncArchivedOrders } = require('./database');
 const { generateOrdersExcel } = require('./excelExporter');
 const { syncOrderToGoogleSheet, testGoogleWebhook, getGoogleAppsScriptTemplate } = require('./googleSheetsSync');
 const {
@@ -170,9 +170,22 @@ app.post('/api/clinics', (req, res) => {
 
 app.get('/api/orders', (req, res) => {
   try {
-    const { search, status, clinicId, datePreset } = req.query;
+    if (typeof syncArchivedOrders === 'function') {
+      syncArchivedOrders();
+    }
+    const { search, status, clinicId, datePreset, archive } = req.query;
     let conditions = [];
     let params = [];
+    const now = new Date();
+    const nowIso = now.toISOString();
+
+    if (archive === 'archived') {
+      conditions.push('(isArchived = 1 OR deliveryDeadline < ?)');
+      params.push(nowIso);
+    } else if (archive === 'active') {
+      conditions.push('(isArchived = 0 AND deliveryDeadline >= ?)');
+      params.push(nowIso);
+    }
 
     if (search && search.trim()) {
       const q = `%${search.trim()}%`;
@@ -193,7 +206,6 @@ app.get('/api/orders', (req, res) => {
       params.push(clinicId);
     }
 
-    const now = new Date();
     if (datePreset === 'today') {
       const todayStr = now.toISOString().slice(0, 10);
       conditions.push("createdAt >= ?");
@@ -302,7 +314,7 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
       toothNumbers,
       shade,
       clinicalNotes: b.clinicalNotes || '',
-      techName: (req.user && req.user.role === 'tech') ? req.user.fullName : (b.techName || req.user?.fullName || 'Field Scan Tech'),
+      techName: (req.user && req.user.role === 'tech') ? req.user.fullName : (b.techName || req.user?.fullName || 'Valaya'),
       techPhone: b.techPhone || '',
       scannerModel: b.scannerModel || 'Medit i700',
       scanLink: b.scanLink || '',
@@ -342,6 +354,19 @@ app.patch('/api/orders/:id/status', requireAdmin, (req, res) => {
     syncOrderToGoogleSheet(updated, 'UPDATE').catch(() => {});
 
     res.json({ success: true, order: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/orders/:id/archive', requireAdmin, (req, res) => {
+  try {
+    const { isArchived } = req.body;
+    const val = isArchived ? 1 : 0;
+    const nowIso = new Date().toISOString();
+    db.prepare('UPDATE orders SET isArchived = ?, archivedAt = ?, updatedAt = ? WHERE orderId = ?')
+      .run(val, val ? nowIso : null, nowIso, req.params.id);
+    res.json({ success: true, isArchived: val, orderId: req.params.id });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -408,19 +433,31 @@ app.get('/api/export/excel', requireAdmin, async (req, res) => {
 
 app.get('/api/stats', (req, res) => {
   try {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    if (typeof syncArchivedOrders === 'function') {
+      syncArchivedOrders();
+    }
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const todayStr = nowIso.slice(0, 10);
+
     const totalToday = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders WHERE createdAt >= ?").get(`${todayStr} 00:00:00`);
     const totalOverall = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders").get();
-    const activeCases = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE status NOT IN ('Dispatched', 'Delivered', 'Cancelled')").get();
-    const crownsCount = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE primaryProduct LIKE '%Crown%'").get();
-    const dispatchedCount = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE status IN ('Dispatched', 'Delivered')").get();
+    
+    // Active cases: within 48h SLA and not dispatched/delivered/cancelled
+    const activeCases = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE (isArchived = 0 AND deliveryDeadline >= ?) AND status NOT IN ('Dispatched', 'Delivered', 'Cancelled')").get(nowIso);
+    
+    // Archived cases: past 48 hours or marked archived
+    const archivedCases = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE (isArchived = 1 OR deliveryDeadline < ?)").get(nowIso);
 
-    const activeOrders = db.prepare("SELECT deliveryDeadline FROM orders WHERE status NOT IN ('Dispatched', 'Delivered', 'Cancelled')").all();
-    const now = new Date();
+    // Urgent cases: active orders strictly between 0 and 12 hours remaining
+    const activeOrders = db.prepare("SELECT deliveryDeadline FROM orders WHERE (isArchived = 0 AND deliveryDeadline >= ?) AND status NOT IN ('Dispatched', 'Delivered', 'Cancelled')").all(nowIso);
     const urgentCount = activeOrders.filter(o => {
       const diffHours = (new Date(o.deliveryDeadline) - now) / (1000 * 60 * 60);
-      return diffHours <= 12;
+      return diffHours >= 0 && diffHours <= 12;
     }).length;
+
+    const crownsCount = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE primaryProduct LIKE '%Crown%'").get();
+    const dispatchedCount = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE status IN ('Dispatched', 'Delivered')").get();
 
     res.json({
       success: true,
@@ -430,6 +467,7 @@ app.get('/api/stats', (req, res) => {
         totalOrders: totalOverall.cnt,
         totalUnits: totalOverall.units,
         activeCases: activeCases.cnt,
+        archivedCount: archivedCases.cnt,
         urgentCount,
         crownsCount: crownsCount.cnt,
         dispatchedCount: dispatchedCount.cnt

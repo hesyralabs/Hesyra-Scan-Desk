@@ -22,11 +22,11 @@
       "items": "[{\"product\": \"Smart Shape Memory Clear Aligners (smartalign)\", \"plan\": \"Flexi (Relapse) \\u2014 Pay per Aligner\", \"toothNumbers\": \"-\", \"archTarget\": \"Upper Arch (5 Sets)\", \"shade\": \"-\", \"qty\": 5, \"unitPrice\": 1600.0, \"lineTotal\": 4200.0, \"lineNote\": \"AL - Operations Job HL-AL-02\"}]",
       "totalUnits": 5,
       "primaryProduct": "Smart Shape Memory Clear Aligners (smartalign)",
-      "primaryPlan": "Flexi (Relapse) \u2014 Pay per Aligner",
+      "primaryPlan": "Flexi (Relapse) — Pay per Aligner",
       "toothNumbers": "-",
       "shade": "-",
       "clinicalNotes": "AL - Operations Job HL-AL-02",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -36,7 +36,9 @@
       "dispatchedAt": "2026-09-02T11:30:00",
       "deliveredAt": "2026-09-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-08-31T11:30:00"
+      "googleSyncedAt": "2026-08-31T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-09-02T11:30:00"
     },
     {
       "id": 19,
@@ -60,11 +62,11 @@
       "items": "[{\"product\": \"Smart Shape Memory Clear Aligners (smartalign)\", \"plan\": \"Flexi (Relapse) \\u2014 Pay per Aligner\", \"toothNumbers\": \"-\", \"archTarget\": \"10 Sets\", \"shade\": \"-\", \"qty\": 10, \"unitPrice\": 2500.0, \"lineTotal\": 26250.0, \"lineNote\": \"Case Ref: TN011AL-26090001-001\"}]",
       "totalUnits": 10,
       "primaryProduct": "Smart Shape Memory Clear Aligners (smartalign)",
-      "primaryPlan": "Flexi (Relapse) \u2014 Pay per Aligner",
+      "primaryPlan": "Flexi (Relapse) — Pay per Aligner",
       "toothNumbers": "-",
       "shade": "-",
       "clinicalNotes": "Case Ref: TN011AL-26090001-001",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -74,7 +76,9 @@
       "dispatchedAt": "2026-09-11T11:30:00",
       "deliveredAt": "2026-09-11T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-09T11:30:00"
+      "googleSyncedAt": "2026-09-09T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-09-11T11:30:00"
     },
     {
       "id": 20,
@@ -102,7 +106,7 @@
       "toothNumbers": "#36",
       "shade": "A2",
       "clinicalNotes": "Case Ref: MH311CB-26090002-001",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -112,7 +116,9 @@
       "dispatchedAt": "2026-09-21T11:30:00",
       "deliveredAt": "2026-09-21T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-19T11:30:00"
+      "googleSyncedAt": "2026-09-19T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-09-21T11:30:00"
     },
     {
       "id": 21,
@@ -140,7 +146,7 @@
       "toothNumbers": "#15",
       "shade": "A2",
       "clinicalNotes": "Case Ref: MH361CB-26090003-001",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -150,7 +156,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 22,
@@ -178,7 +186,7 @@
       "toothNumbers": "#15",
       "shade": "a2",
       "clinicalNotes": "Case Ref: MH361CB-26090003-001-02",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -188,7 +196,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 23,
@@ -216,7 +226,7 @@
       "toothNumbers": "-",
       "shade": "-",
       "clinicalNotes": "Case Ref: MH361CB-26090003-001-03",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -226,7 +236,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 24,
@@ -254,7 +266,7 @@
       "toothNumbers": "#46",
       "shade": "C2",
       "clinicalNotes": "Case Ref: MH361CB-26090003-001-04",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -264,7 +276,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 25,
@@ -292,7 +306,7 @@
       "toothNumbers": "-",
       "shade": "-",
       "clinicalNotes": "Retainer - Operations Job HL-AL-10",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -302,7 +316,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 26,
@@ -330,7 +346,7 @@
       "toothNumbers": "-",
       "shade": "-",
       "clinicalNotes": "Retainer - Operations Job HL-AL-14",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -340,7 +356,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 27,
@@ -368,7 +386,7 @@
       "toothNumbers": "#36",
       "shade": "A2",
       "clinicalNotes": "NC - Operations Job HL-NC-05",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -378,7 +396,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 28,
@@ -406,7 +426,7 @@
       "toothNumbers": "#15, 16, 17",
       "shade": "A2",
       "clinicalNotes": "ZC - Operations Job HL-ZC-13",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -416,7 +436,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 29,
@@ -444,7 +466,7 @@
       "toothNumbers": "#35, 36",
       "shade": "A2",
       "clinicalNotes": "ZC - Operations Job HL-ZC-06",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -454,7 +476,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     },
     {
       "id": 30,
@@ -482,7 +506,7 @@
       "toothNumbers": "-",
       "shade": "-",
       "clinicalNotes": "Retainer - Operations Job HL-AL-09",
-      "techName": "Meera Joshi",
+      "techName": "Valaya",
       "techPhone": "+91 91588 44021",
       "scannerModel": "Medit i700",
       "scanLink": null,
@@ -492,7 +516,9 @@
       "dispatchedAt": "2026-10-02T11:30:00",
       "deliveredAt": "2026-10-02T11:30:00",
       "googleSynced": 1,
-      "googleSyncedAt": "2026-09-30T11:30:00"
+      "googleSyncedAt": "2026-09-30T11:30:00",
+      "isArchived": 1,
+      "archivedAt": "2026-10-02T11:30:00"
     }
   ],
   "clinics": [
