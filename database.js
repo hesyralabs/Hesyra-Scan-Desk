@@ -100,56 +100,61 @@ db.exec(`
 
 `);
 
-// Auto-seed default approved clinics if table is empty (e.g. on fresh cloud deployment)
-const clinicCount = db.prepare('SELECT COUNT(*) as cnt FROM clinics').get().cnt;
-if (clinicCount === 0) {
-  const seedClinics = [
-    {
-      primaryDoctorName: 'Dr Siddharth Baror',
-      clinicName: 'Apollo Dental Nagpur',
-      partnerDoctors: '',
-      phone: '+9188558 16951',
-      email: '',
-      gstin: '27BMRPB4693Q1Z3',
-      fullAddress: 'ground floor, plot 1A, W High Ct Rd, opposite neeri bus stop, Laxminagar, Nagpur, Maharashtra 440022',
-      city: 'Nagpur',
-      state: 'Maharashtra',
-      pinCode: '440022',
-      creditDays: '15',
-      internalNotes: ''
-    },
-    {
-      primaryDoctorName: 'Dr Rahul',
-      clinicName: 'Rahul Dental Care',
-      partnerDoctors: '',
-      phone: '9579967420',
-      email: '',
-      gstin: 'N/A',
-      fullAddress: '25, Mulla Sahib St, opposite to POLICE BOOTH, Sowcarpet, George Town, Greater Chennai',
-      city: 'Chennai',
-      state: 'Tamil Nadu',
-      pinCode: '600001',
-      creditDays: '15',
-      internalNotes: ''
+// Auto-seed default approved clinics & cases if table is empty (e.g. on fresh cloud deployment)
+try {
+  const fs = require('fs');
+  const path = require('path');
+  const seedFile = path.join(__dirname, 'seedData.json');
+
+  if (fs.existsSync(seedFile)) {
+    const seedData = JSON.parse(fs.readFileSync(seedFile, 'utf8'));
+
+    const clinicCount = db.prepare('SELECT COUNT(*) as cnt FROM clinics').get().cnt;
+    if (clinicCount === 0 && Array.isArray(seedData.clinics)) {
+      const insertClinic = db.prepare(`
+        INSERT INTO clinics (
+          clinicUsername, portalId, primaryDoctorName, clinicName, partnerDoctors,
+          phone, email, gstin, fullAddress, city, state, pinCode, creditDays, internalNotes,
+          createdAt, updatedAt
+        ) VALUES (
+          @clinicUsername, @portalId, @primaryDoctorName, @clinicName, @partnerDoctors,
+          @phone, @email, @gstin, @fullAddress, @city, @state, @pinCode, @creditDays, @internalNotes,
+          @createdAt, @updatedAt
+        )
+      `);
+      for (const c of seedData.clinics) {
+        insertClinic.run(c);
+      }
+      console.log(`[Database Seed] Seeded ${seedData.clinics.length} clinics.`);
     }
-  ];
 
-  const nowIso = new Date().toISOString();
-  const insertStmt = db.prepare(`
-    INSERT INTO clinics (
-      clinicUsername, portalId, primaryDoctorName, clinicName, partnerDoctors,
-      phone, email, gstin, fullAddress, city, state, pinCode, creditDays, internalNotes,
-      createdAt, updatedAt
-    ) VALUES (
-      '', '', @primaryDoctorName, @clinicName, @partnerDoctors,
-      @phone, @email, @gstin, @fullAddress, @city, @state, @pinCode, @creditDays, @internalNotes,
-      '${nowIso}', '${nowIso}'
-    )
-  `);
-
-  for (const c of seedClinics) {
-    insertStmt.run(c);
+    const orderCount = db.prepare('SELECT COUNT(*) as cnt FROM orders').get().cnt;
+    if (orderCount === 0 && Array.isArray(seedData.orders)) {
+      const insertOrder = db.prepare(`
+        INSERT INTO orders (
+          orderId, createdAt, updatedAt, deliveryDeadline,
+          clinicId, clinicUsername, portalId, clinicName, primaryDoctorName, clinicPhone, clinicCity,
+          patientName, patientAge, patientSex, patientRefId, consultantDoctor, consultantPhone,
+          items, totalUnits, primaryProduct, primaryPlan, toothNumbers, shade,
+          clinicalNotes, techName, techPhone, scannerModel, scanLink, photos,
+          status, statusNotes, dispatchedAt, deliveredAt, googleSynced, googleSyncedAt
+        ) VALUES (
+          @orderId, @createdAt, @updatedAt, @deliveryDeadline,
+          @clinicId, @clinicUsername, @portalId, @clinicName, @primaryDoctorName, @clinicPhone, @clinicCity,
+          @patientName, @patientAge, @patientSex, @patientRefId, @consultantDoctor, @consultantPhone,
+          @items, @totalUnits, @primaryProduct, @primaryPlan, @toothNumbers, @shade,
+          @clinicalNotes, @techName, @techPhone, @scannerModel, @scanLink, @photos,
+          @status, @statusNotes, @dispatchedAt, @deliveredAt, @googleSynced, @googleSyncedAt
+        )
+      `);
+      for (const o of seedData.orders) {
+        insertOrder.run(o);
+      }
+      console.log(`[Database Seed] Seeded ${seedData.orders.length} cases.`);
+    }
   }
+} catch (err) {
+  console.warn('[Database Seed Notice]:', err.message);
 }
 
 
@@ -186,6 +191,15 @@ if (!getSettingStmt.get('google_sheet_webhook_url')) {
 }
 if (!getSettingStmt.get('company_name')) {
   setSettingStmt.run('company_name', 'Hesyra Dental Labs');
+}
+
+function getSetting(key) {
+  const row = getSettingStmt.get(key);
+  return row ? row.value : null;
+}
+
+function setSetting(key, value) {
+  setSettingStmt.run(key, value);
 }
 
 module.exports = {
