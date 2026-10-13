@@ -46,6 +46,45 @@ const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
 
+// --- REAL-TIME SERVER-SENT EVENTS (SSE) STREAM ---
+let sseClients = [];
+
+app.get('/api/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+  const clientId = Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+  const client = { id: clientId, res };
+  sseClients.push(client);
+
+  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', clientId })}\n\n`);
+
+  const keepAlive = setInterval(() => {
+    try {
+      res.write(': keep-alive\n\n');
+    } catch (e) {
+      clearInterval(keepAlive);
+    }
+  }, 20000);
+
+  req.on('close', () => {
+    clearInterval(keepAlive);
+    sseClients = sseClients.filter(c => c.id !== clientId);
+  });
+});
+
+function broadcastEvent(payload) {
+  const data = `data: ${JSON.stringify(payload)}\n\n`;
+  sseClients.forEach(c => {
+    try {
+      c.res.write(data);
+    } catch (e) {}
+  });
+}
+
+
 
 // --- AUTHENTICATION API (Public endpoints) ---
 
@@ -331,6 +370,16 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
     // Optional Google Webhook
     syncOrderToGoogleSheet(savedOrder, 'INSERT').catch(() => {});
 
+    // Live broadcast new order to all connected admin dashboards in real time
+    broadcastEvent({
+      type: 'NEW_ORDER',
+      order: savedOrder,
+      orderId: savedOrder.orderId,
+      patientName: savedOrder.patientName,
+      clinicName: savedOrder.clinicName,
+      techName: savedOrder.techName || 'Valaya'
+    });
+
     res.status(201).json({ success: true, order: savedOrder });
   } catch (err) {
     console.error('POST /api/orders error:', err);
@@ -353,6 +402,12 @@ app.patch('/api/orders/:id/status', requireAdmin, (req, res) => {
     syncAllToGoogleDrive().catch(err => console.warn('[GDrive Sync on Status Notice]:', err.message));
     syncOrderToGoogleSheet(updated, 'UPDATE').catch(() => {});
 
+    broadcastEvent({
+      type: 'STATUS_UPDATE',
+      orderId: req.params.id,
+      status
+    });
+
     res.json({ success: true, order: updated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -366,6 +421,12 @@ app.patch('/api/orders/:id/archive', requireAdmin, (req, res) => {
     const nowIso = new Date().toISOString();
     db.prepare('UPDATE orders SET isArchived = ?, archivedAt = ?, updatedAt = ? WHERE orderId = ?')
       .run(val, val ? nowIso : null, nowIso, req.params.id);
+    broadcastEvent({
+      type: 'ARCHIVE_UPDATE',
+      orderId: req.params.id,
+      isArchived: val
+    });
+
     res.json({ success: true, isArchived: val, orderId: req.params.id });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -376,6 +437,11 @@ app.delete('/api/orders/:id', requireAdmin, (req, res) => {
   try {
     db.prepare('DELETE FROM orders WHERE id = ? OR orderId = ?').run(req.params.id, req.params.id);
     syncAllToGoogleDrive().catch(err => console.warn('[GDrive Sync on Delete Notice]:', err.message));
+    broadcastEvent({
+      type: 'ORDER_DELETED',
+      orderId: req.params.id
+    });
+
     res.json({ success: true, message: 'Order deleted successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

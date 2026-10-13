@@ -733,3 +733,42 @@
     display: none !important;
   }
 }
+
+/* Live Sync Indicator & Real-Time Pulse */
+.live-sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-size: 0.7rem;
+  font-weight: 750;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: livePulse 1.8s infinite;
+}
+
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes newRowGlow {
+  0% { background-color: #dcfce7 !important; }
+  100% { background-color: transparent !important; }
+}
+
+.row-newly-added {
+  animation: newRowGlow 3s ease-out;
+}

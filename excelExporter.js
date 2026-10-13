@@ -353,6 +353,18 @@ async function generateOrdersExcel(orders = [], clinics = null) {
       }
     } catch (e) {}
 
+    // Clean crowns and plans
+    if (prodCategory === 'Permanent Crown') {
+      const isZirconia = (o.clinicalNotes && o.clinicalNotes.includes('ZC')) || (toothNum && (toothNum.includes('35') || toothNum.includes('15, 16')));
+      prodCategory = isZirconia ? 'Zirconia Crown' : 'Ceramic Crown';
+    }
+    if (prodPlan.includes('Warranty') || prodPlan.includes('Hesyra')) {
+      prodPlan = '-';
+    }
+    if (toothNum && toothNum !== '-') {
+      toothNum = toothNum.replace(/^#+/, '').trim();
+    }
+
     // Retainers, Splints, Clear Aligners are transparent appliances — never have a tooth VITA shade
     const prodLower = prodCategory.toLowerCase();
     const isClearAppliance = prodLower.includes('retainer') || prodLower.includes('aligner') || prodLower.includes('splint') || prodLower.includes('guard') || prodLower.includes('appliance');

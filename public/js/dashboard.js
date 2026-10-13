@@ -24,6 +24,7 @@ async function initDashboard() {
   setupExcelExport();
   setupGoogleSheetsConfig();
   setupGoogleDriveSync();
+  setupLiveLedgerStream();
   await refreshDashboardStats();
   await loadOrders();
   if (window.currentUser?.role === 'admin') {
@@ -143,15 +144,33 @@ function renderOrdersTable(orders) {
       items = [];
     }
 
-    const itemsSummaryHtml = items.map(it => `
-      <div style="margin-bottom: 3px;">
-        <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">${escapeHtml(it.product || o.primaryProduct)}</span>
-        <span style="font-size: 0.75rem; color: var(--text-muted);">[${escapeHtml(it.plan || o.primaryPlan)}]</span>
-        ${it.toothNumbers ? `<span class="teeth-pill">#${escapeHtml(it.toothNumbers)}</span>` : ''}
-        <span style="font-size: 0.75rem; background: #0f172a; color: #fff; padding: 1px 5px; border-radius: 4px; font-weight: 700;">${escapeHtml(it.shade || o.shade)}</span>
-        <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary);">x${it.qty || 1}</span>
-      </div>
-    `).join('');
+    const itemsSummaryHtml = items.map(it => {
+      let prodName = it.product || o.primaryProduct || 'Prosthesis';
+      if (prodName === 'Permanent Crown') {
+        const isZirconia = (it.unitPrice >= 1200) || (o.clinicalNotes && o.clinicalNotes.includes('ZC')) || (it.toothNumbers && (it.toothNumbers.includes('35') || it.toothNumbers.includes('15, 16')));
+        prodName = isZirconia ? 'Zirconia Crown' : 'Ceramic Crown';
+      }
+
+      let planName = it.plan || o.primaryPlan || '';
+      if (planName === '-' || planName.includes('Warranty') || planName.includes('Hesyra') || planName.toLowerCase().includes('tier')) {
+        planName = '';
+      }
+
+      let rawTeeth = (it.toothNumbers && it.toothNumbers !== '-') ? String(it.toothNumbers).replace(/^#+/, '').trim() : '';
+      let rawShade = (it.shade && it.shade !== '-') ? String(it.shade).trim() : '';
+      let rawArch = (it.archTarget && it.archTarget !== '-') ? String(it.archTarget).trim() : '';
+
+      return `
+        <div style="margin-bottom: 4px; line-height: 1.4;">
+          <span style="font-weight: 750; color: var(--text-main); font-size: 0.88rem;">${escapeHtml(prodName)}</span>
+          ${planName ? `<span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 2px;">[${escapeHtml(planName)}]</span>` : ''}
+          ${rawArch ? `<span style="font-size: 0.72rem; background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 4px; font-weight: 600; margin-left: 4px;">${escapeHtml(rawArch)}</span>` : ''}
+          ${rawTeeth ? `<span class="teeth-pill" style="font-size: 0.75rem; background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 4px; font-weight: 700; margin-left: 4px;">#${escapeHtml(rawTeeth)}</span>` : ''}
+          ${rawShade ? `<span class="shade-pill" style="font-size: 0.72rem; background: #0f172a; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 700; margin-left: 4px;">${escapeHtml(rawShade)}</span>` : ''}
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--primary); margin-left: 4px;">x${it.qty || 1}</span>
+        </div>
+      `;
+    }).join('');
 
     // Production Stage Cell: Admin gets editable select; Tech gets read-only badge
     let stageCellHtml = '';
@@ -384,6 +403,67 @@ async function confirmDeleteOrder(orderId) {
   } catch (err) {
     showToast('Error deleting case: ' + err.message, 'error');
   }
+}
+
+
+/**
+ * Real-Time Live Ledger Stream (SSE + 5s Heartbeat Sync)
+ * Instantly reflects chairside scans submitted by Valaya
+ */
+let sseConnection = null;
+let livePollInterval = null;
+let lastKnownTotal = 0;
+
+function setupLiveLedgerStream() {
+  if (window.EventSource) {
+    if (sseConnection) {
+      try { sseConnection.close(); } catch (e) {}
+    }
+
+    try {
+      sseConnection = new EventSource('/api/events');
+
+      sseConnection.onmessage = function(event) {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'NEW_ORDER') {
+            const o = data.order || {};
+            const tech = data.techName || o.techName || 'Valaya';
+            const patient = data.patientName || o.patientName || 'Patient';
+            const orderId = data.orderId || o.orderId || '';
+
+            // Real-time toast alert
+            showToast(`🚀 Live: ${tech} enrolled new scan: ${patient} (${orderId})`, 'success');
+
+            // Refresh ledger and KPI cards immediately
+            refreshDashboardStats();
+            loadOrders();
+          } else if (['STATUS_UPDATE', 'ARCHIVE_UPDATE', 'ORDER_DELETED'].includes(data.type)) {
+            refreshDashboardStats();
+            loadOrders();
+          }
+        } catch (e) {}
+      };
+    } catch (err) {
+      console.warn('SSE stream init notice:', err);
+    }
+  }
+
+  // Active 5-second polling fallback
+  if (livePollInterval) clearInterval(livePollInterval);
+  livePollInterval = setInterval(async () => {
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      if (data.success && data.stats) {
+        const currentTotal = data.stats.totalOrders || 0;
+        if (lastKnownTotal > 0 && currentTotal !== lastKnownTotal) {
+          loadOrders();
+        }
+        lastKnownTotal = currentTotal;
+      }
+    } catch (e) {}
+  }, 5000);
 }
 
 function setupFilterListeners() {

@@ -5,9 +5,11 @@
  */
 
 const PRODUCT_CATALOG = {
-  "Prosthesis": [
-    "Permanent Crown",
-    "Bridge (Per Unit)",
+  "Crowns & Bridges": [
+    "Zirconia Crown",
+    "Ceramic Crown",
+    "Zirconia Bridge",
+    "Ceramic Bridge",
     "Inlays & Onlays",
     "Veneers"
   ],
@@ -761,6 +763,8 @@ function setupFormSubmit() {
 
       if (result.success && result.order) {
         showToast('Case successfully enrolled with 48-Hour delivery deadline!', 'success');
+        window.loadOrders?.();
+        window.refreshDashboardStats?.();
         showSuccessModal(result.order);
       } else {
         showToast(result.error || 'Failed to enroll case', 'error');
