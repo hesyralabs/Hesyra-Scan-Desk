@@ -3,7 +3,7 @@
  * Role-Based Access Control: Admin has full status/delete/sync power; Field Tech has read-only tracking.
  */
 let currentOrders = [];
-let activeFilters = { search: '', status: 'all', clinicId: 'all', datePreset: 'all', archive: 'active' };
+let activeFilters = { search: '', status: 'all', clinicId: 'all', datePreset: 'all', archive: 'all' };
 let timerInterval = null;
 
 function getStatusIcon(status) {
@@ -134,6 +134,8 @@ function renderOrdersTable(orders) {
   }
 
   tableBody.innerHTML = orders.map(o => {
+    const isCaseArchived = Boolean(o.isArchived || new Date(o.deliveryDeadline) < new Date());
+
     let items = [];
     try {
       items = JSON.parse(o.items || '[]');
@@ -189,8 +191,6 @@ function renderOrdersTable(orders) {
         ${o.scanLink ? `<a href="${escapeHtml(o.scanLink)}" target="_blank" rel="noopener noreferrer" class="btn-icon-action" title="Open Scan Link"><i data-lucide="external-link"></i></a>` : ''}
       </div>
     `;
-
-    const isCaseArchived = Boolean(o.isArchived || new Date(o.deliveryDeadline) < new Date());
 
     return `
       <tr data-order-id="${o.orderId}" data-deadline="${o.deliveryDeadline}" data-status="${o.status}" data-archived="${isCaseArchived ? '1' : '0'}">
@@ -526,6 +526,7 @@ function viewOrderDetails(orderId) {
   if (!o) return;
   const modal = document.getElementById('order-detail-modal');
   if (!modal) return;
+  const isCaseArchived = Boolean(o.isArchived || new Date(o.deliveryDeadline) < new Date());
 
   document.getElementById('detail-modal-title').textContent = `Case ${o.orderId} - ${o.patientName}`;
 

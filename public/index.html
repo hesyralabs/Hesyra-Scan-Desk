@@ -387,7 +387,12 @@
           <div class="filter-controls">
             <!-- 48h SLA / Archive Segmented Selector -->
             <div class="archive-segmented-group" id="archive-filter-group" title="Lab Ledger Case Filtering">
-              <button type="button" class="archive-pill active" data-archive="active">
+              <button type="button" class="archive-pill active" data-archive="all">
+                <i data-lucide="layers"></i>
+                <span>All Cases</span>
+                <span class="archive-count" id="pill-all-count">0</span>
+              </button>
+              <button type="button" class="archive-pill" data-archive="active">
                 <i data-lucide="zap"></i>
                 <span>Active (≤48h)</span>
                 <span class="archive-count" id="pill-active-count">0</span>
@@ -396,11 +401,6 @@
                 <i data-lucide="archive"></i>
                 <span>Archived (&gt;48h)</span>
                 <span class="archive-count" id="pill-archived-count">0</span>
-              </button>
-              <button type="button" class="archive-pill" data-archive="all">
-                <i data-lucide="layers"></i>
-                <span>All Cases</span>
-                <span class="archive-count" id="pill-all-count">0</span>
               </button>
             </div>
 
