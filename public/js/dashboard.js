@@ -531,7 +531,8 @@ function setupExcelExport() {
       showToast('Permission Denied: Master database export is restricted to Central Lab Administrators.', 'error');
       return;
     }
-    window.location.href = '/api/export/excel';
+    const token = localStorage.getItem('hesyra_auth_token') || '';
+    window.location.href = `/api/export/excel?token=${encodeURIComponent(token)}`;
     showToast('Downloading 48-Hour Case Ledger (.xlsx)...', 'success');
   });
 }
