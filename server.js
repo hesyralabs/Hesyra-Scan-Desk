@@ -5,6 +5,7 @@ const fs = require('fs');
 const multer = require('multer');
 
 const { db, getDeadline48h, generateOrderId, getSetting, setSetting, syncArchivedOrders } = require('./database');
+const { syncFromTursoOnBoot, pushOrderToTurso, getTursoConfig } = require('./tursoSyncService');
 const { generateOrdersExcel } = require('./excelExporter');
 const { syncOrderToGoogleSheet, testGoogleWebhook, getGoogleAppsScriptTemplate } = require('./googleSheetsSync');
 const {
@@ -372,6 +373,7 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
     syncOrderToGoogleSheet(savedOrder, 'INSERT').catch(() => {});
 
     // Live broadcast new order to all connected admin dashboards in real time
+    pushOrderToTurso(updated).catch(() => {});
     broadcastEvent({
       type: 'NEW_ORDER',
       order: savedOrder,
@@ -396,6 +398,7 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
       console.warn('[Seed Backup Warning]:', seedErr.message);
     }
 
+    pushOrderToTurso(savedOrder).catch(err => console.warn('[Turso Sync Push Notice]:', err.message));
     res.status(201).json({ success: true, order: savedOrder });
   } catch (err) {
     console.error('POST /api/orders error:', err);
@@ -596,7 +599,18 @@ app.post('/api/settings/test-google', requireAdmin, async (req, res) => {
 // Start background recurring sync (every 5 minutes)
 startPeriodicSync(5);
 
+
+app.get('/api/turso/status', (req, res) => {
+  const conf = getTursoConfig();
+  res.json({
+    success: true,
+    enabled: conf.enabled,
+    url: conf.url ? conf.url.replace(/:[^@]+@/, ':***@') : null
+  });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Hesyra Scan Desk running at http://localhost:${PORT}`);
+  syncFromTursoOnBoot().catch(e => console.warn('[Turso Boot Sync Notice]:', e.message));
   console.log(`Google Drive Sync target: G:\\My Drive\\Hesyra Invoices`);
 });
