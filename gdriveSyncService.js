@@ -404,7 +404,7 @@ async function syncAllToGoogleDrive() {
   }
 
   // 1. Fetch current orders and clinics
-  const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
+  const orders = db.prepare('SELECT * FROM orders WHERE isDeleted = 0 ORDER BY id DESC').all();
   const clinics = db.prepare('SELECT * FROM clinics ORDER BY clinicName ASC').all();
 
   // 2. Generate and write Hesyra_Field_Scan_Orders.xlsx (with Orders & Clinic Details sheets)

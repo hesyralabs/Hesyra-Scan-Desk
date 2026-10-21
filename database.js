@@ -112,6 +112,15 @@ try {
 try {
   db.exec("ALTER TABLE orders ADD COLUMN archivedAt TEXT");
 } catch (e) {}
+// Migrations: Platform Hardening columns (v1.1.0)
+try { db.exec("ALTER TABLE orders ADD COLUMN isDeleted INTEGER DEFAULT 0"); } catch (e) {}
+try { db.exec("ALTER TABLE orders ADD COLUMN deletedAt TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE orders ADD COLUMN version INTEGER DEFAULT 1"); } catch (e) {}
+try { db.exec("ALTER TABLE orders ADD COLUMN history TEXT DEFAULT '[]'"); } catch (e) {}
+try { db.exec("ALTER TABLE orders ADD COLUMN actorName TEXT DEFAULT ''"); } catch (e) {}
+try { db.exec("ALTER TABLE orders ADD COLUMN deliveryLoggedAt TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE clinics ADD COLUMN normalizedName TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE clinics ADD COLUMN normalizedPhone TEXT"); } catch (e) {}
 
 // Auto-archive sync helper: All cases past their 48-hour delivery deadline are archived
 function syncArchivedOrders() {

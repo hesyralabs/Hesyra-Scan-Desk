@@ -208,6 +208,8 @@ function setupClinicRegistrationModal() {
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (form._isSubmitting) return;
+    form._isSubmitting = true;
     const btnSubmit = document.getElementById('btn-save-clinic');
     btnSubmit.disabled = true;
     btnSubmit.textContent = 'Saving...';
@@ -252,6 +254,7 @@ function setupClinicRegistrationModal() {
     } catch (err) {
       showToast('Network error: ' + err.message, 'error');
     } finally {
+      form._isSubmitting = false;
       btnSubmit.disabled = false;
       btnSubmit.textContent = 'Save Clinic';
     }

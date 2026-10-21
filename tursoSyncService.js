@@ -70,7 +70,13 @@ async function initTursoSchema() {
         googleSynced INTEGER DEFAULT 0,
         googleSyncedAt TEXT,
         isArchived INTEGER DEFAULT 0,
-        archivedAt TEXT
+        archivedAt TEXT,
+        isDeleted INTEGER DEFAULT 0,
+        deletedAt TEXT,
+        version INTEGER DEFAULT 1,
+        history TEXT DEFAULT '[]',
+        actorName TEXT DEFAULT '',
+        deliveryLoggedAt TEXT
       )
     `);
 
@@ -88,6 +94,18 @@ async function initTursoSchema() {
         createdAt TEXT
       )
     `);
+
+    const migrations = [
+      "ALTER TABLE orders ADD COLUMN isDeleted INTEGER DEFAULT 0",
+      "ALTER TABLE orders ADD COLUMN deletedAt TEXT",
+      "ALTER TABLE orders ADD COLUMN version INTEGER DEFAULT 1",
+      "ALTER TABLE orders ADD COLUMN history TEXT DEFAULT '[]'",
+      "ALTER TABLE orders ADD COLUMN actorName TEXT DEFAULT ''",
+      "ALTER TABLE orders ADD COLUMN deliveryLoggedAt TEXT"
+    ];
+    for (const m of migrations) {
+      try { await turso.execute(m); } catch (e) {}
+    }
 
     console.log('[Turso Cloud] Schema verified.');
     return true;
@@ -171,7 +189,7 @@ async function pushOrderToTurso(order) {
       'consultantPhone', 'items', 'totalUnits', 'primaryProduct', 'primaryPlan',
       'toothNumbers', 'shade', 'clinicalNotes', 'techName', 'techPhone', 'scannerModel',
       'scanLink', 'photos', 'status', 'statusNotes', 'dispatchedAt', 'deliveredAt',
-      'googleSynced', 'googleSyncedAt', 'isArchived', 'archivedAt'
+      'googleSynced', 'googleSyncedAt', 'isArchived', 'archivedAt', 'isDeleted', 'deletedAt', 'version', 'history', 'actorName', 'deliveryLoggedAt'
     ];
 
     const colsStr = keys.join(', ');
@@ -187,7 +205,13 @@ async function pushOrderToTurso(order) {
               dispatchedAt = excluded.dispatchedAt,
               deliveredAt = excluded.deliveredAt,
               isArchived = excluded.isArchived,
-              archivedAt = excluded.archivedAt`,
+              archivedAt = excluded.archivedAt,
+              isDeleted = excluded.isDeleted,
+              deletedAt = excluded.deletedAt,
+              version = excluded.version,
+              history = excluded.history,
+              actorName = excluded.actorName,
+              deliveryLoggedAt = excluded.deliveryLoggedAt`,
       args: values
     });
 

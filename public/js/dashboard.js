@@ -838,3 +838,27 @@ async function triggerDriveSync() {
 window.setupGoogleDriveSync = setupGoogleDriveSync;
 window.checkGoogleDriveStatus = checkGoogleDriveStatus;
 window.triggerDriveSync = triggerDriveSync;
+
+async function resetAllFilters() {
+  activeFilters.search = '';
+  activeFilters.status = 'all';
+  activeFilters.clinicId = 'all';
+  activeFilters.datePreset = 'all';
+  activeFilters.archive = 'all';
+
+  const searchInput = document.getElementById('search-orders');
+  if (searchInput) searchInput.value = '';
+  const statusFilter = document.getElementById('filter-status');
+  if (statusFilter) statusFilter.value = 'all';
+  const clinicFilter = document.getElementById('filter-clinic');
+  if (clinicFilter) clinicFilter.value = 'all';
+  const dateFilter = document.getElementById('filter-date');
+  if (dateFilter) dateFilter.value = 'all';
+
+  document.querySelectorAll('.btn-archive-filter').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-filter-all')?.classList.add('active');
+
+  showToast('Filters reset. Showing all cases.', 'info');
+  await loadOrders();
+}
+window.resetAllFilters = resetAllFilters;

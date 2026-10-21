@@ -1,5 +1,9 @@
 require('dotenv').config();
 const express = require('express');
+function sanitizeInput(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/<[^>]*>?/gm, '').trim();
+}
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
@@ -166,6 +170,21 @@ app.post('/api/clinics', (req, res) => {
       return res.status(400).json({ success: false, error: 'Primary Doctor Name is required.' });
     }
 
+    const cleanDoc = sanitizeInput(b.primaryDoctorName);
+    const cleanClinic = b.clinicName ? sanitizeInput(b.clinicName) : `Clinic of ${cleanDoc}`;
+    const cleanPhone = (b.phone || '').replace(/\D/g, '').slice(-10);
+
+    // [Vulnerability Guard] Prevent duplicate clinic fragmentation
+    const existingClinic = db.prepare(`
+      SELECT * FROM clinics 
+      WHERE LOWER(TRIM(clinicName)) = LOWER(?) 
+         OR (LENGTH(?) >= 10 AND REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+91', '') LIKE ?)
+    `).get(cleanClinic, cleanPhone, `%${cleanPhone}%`);
+
+    if (existingClinic) {
+      return res.status(200).json({ success: true, clinic: existingClinic, reused: true });
+    }
+
     const nowIso = new Date().toISOString();
 
     const stmt = db.prepare(`
@@ -216,7 +235,7 @@ app.get('/api/orders', (req, res) => {
       syncArchivedOrders();
     }
     const { search, status, clinicId, datePreset, archive } = req.query;
-    let conditions = [];
+    let conditions = ['isDeleted = 0'];
     let params = [];
     const now = new Date();
     const nowIso = now.toISOString();
@@ -308,10 +327,25 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
     }
 
     const totalUnits = items.reduce((acc, it) => acc + (parseInt(it.qty, 10) || 1), 0);
-    const primaryProduct = items[0]?.product || 'Crown';
-    const primaryPlan = items[0]?.plan || '';
-    const toothNumbers = items.map(it => it.toothNumbers).filter(Boolean).join(', ');
-    const shade = items[0]?.shade || 'A2';
+    const primaryProduct = sanitizeInput(items[0]?.product || 'Crown');
+    const primaryPlan = sanitizeInput(items[0]?.plan || '');
+    const toothNumbers = sanitizeInput(items.map(it => it.toothNumbers).filter(Boolean).join(', '));
+    const shade = sanitizeInput(items[0]?.shade || 'A2');
+    const patientNameClean = sanitizeInput(b.patientName || 'Patient');
+    const clinicIdVal = parseInt(b.clinicId, 10) || null;
+
+    // [Vulnerability Guard] 45-Second Network Idempotency Guard (Prevents double-tap duplicate orders on 4G)
+    const recentDuplicate = db.prepare(`
+      SELECT * FROM orders 
+      WHERE clinicId = ? AND patientName = ? AND toothNumbers = ? 
+        AND isDeleted = 0 
+        AND createdAt >= datetime('now', '-45 seconds')
+    `).get(clinicIdVal, patientNameClean, toothNumbers);
+
+    if (recentDuplicate) {
+      console.log(`[Idempotency Guard] Duplicate enrollment blocked for ${patientNameClean} (${recentDuplicate.orderId})`);
+      return res.status(200).json({ success: true, order: recentDuplicate, duplicatePrevented: true });
+    }
 
     const stmt = db.prepare(`
       INSERT INTO orders (
@@ -320,14 +354,14 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
         patientName, patientAge, patientSex, patientRefId, consultantDoctor, consultantPhone,
         items, totalUnits, primaryProduct, primaryPlan, toothNumbers, shade,
         clinicalNotes, techName, techPhone, scannerModel, scanLink, photos,
-        status, statusNotes
+        status, statusNotes, version, history, isDeleted, actorName
       ) VALUES (
         @orderId, @createdAt, @updatedAt, @deliveryDeadline,
         @clinicId, @clinicUsername, @portalId, @clinicName, @primaryDoctorName, @clinicPhone, @clinicCity,
         @patientName, @patientAge, @patientSex, @patientRefId, @consultantDoctor, @consultantPhone,
         @items, @totalUnits, @primaryProduct, @primaryPlan, @toothNumbers, @shade,
         @clinicalNotes, @techName, @techPhone, @scannerModel, @scanLink, @photos,
-        @status, @statusNotes
+        @status, @statusNotes, @version, @history, @isDeleted, @actorName
       )
     `);
 
@@ -362,7 +396,11 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
       scanLink: b.scanLink || '',
       photos: JSON.stringify(photoUrls),
       status: 'Scanned',
-      statusNotes: 'Case enrolled chairside by field technician'
+      statusNotes: 'Case enrolled chairside by field technician',
+      version: 1,
+      history: JSON.stringify([{ from: '', to: 'Scanned', actor: sanitizeInput(b.techName || 'Valaya'), timestamp: nowIso }]),
+      isDeleted: 0,
+      actorName: sanitizeInput(b.techName || 'Valaya')
     };
 
     const info = stmt.run(orderRecord);
@@ -374,8 +412,7 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
     syncOrderToGoogleSheet(savedOrder, 'INSERT').catch(() => {});
 
     // Live broadcast new order to all connected admin dashboards in real time
-    pushOrderToTurso(updated).catch(() => {});
-    broadcastEvent({
+        broadcastEvent({
       type: 'NEW_ORDER',
       order: savedOrder,
       orderId: savedOrder.orderId,
@@ -409,13 +446,50 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
 
 app.patch('/api/orders/:id/status', requireAdmin, (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, statusNotes, actorName, lastUpdatedAt, expectedVersion } = req.body;
+    const order = db.prepare('SELECT * FROM orders WHERE id = ? OR orderId = ?').get(req.params.id, req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    // [Vulnerability Guard] Optimistic Concurrency Lock
+    if (expectedVersion && order.version && expectedVersion !== order.version) {
+      return res.status(409).json({ success: false, error: 'Conflict: This case was modified by another workstation. Please refresh.' });
+    }
+
+    // [Vulnerability Guard] Mandatory Defect Notes for QC Rejections
+    if ((status === 'QC Failed' || status === 'Rework') && (!statusNotes || !statusNotes.trim())) {
+      return res.status(400).json({ success: false, error: 'Defect notes and rework reason are required when marking QC Failed / Rework.' });
+    }
+
+    // [Vulnerability Guard] Delivery Validation
+    if (status === 'Delivered' && order.status !== 'Dispatched' && !req.body.overrideDirectDelivery) {
+      return res.status(400).json({ success: false, error: 'Cannot mark Delivered directly. Case must be marked Dispatched first.' });
+    }
+
     const nowIso = new Date().toISOString();
+    let historyArr = [];
+    try { historyArr = JSON.parse(order.history || '[]'); } catch (e) {}
+    const actor = sanitizeInput(actorName || req.session?.fullName || 'Staff');
+    historyArr.push({
+      from: order.status,
+      to: status,
+      actor,
+      notes: statusNotes ? sanitizeInput(statusNotes) : '',
+      timestamp: nowIso
+    });
+
+    const newVersion = (order.version || 1) + 1;
     let extra = '';
     if (status === 'Dispatched') extra = `, dispatchedAt = '${nowIso}'`;
-    if (status === 'Delivered') extra = `, deliveredAt = '${nowIso}'`;
+    if (status === 'Delivered') extra = `, deliveredAt = '${nowIso}', deliveryLoggedAt = '${nowIso}'`;
 
-    db.prepare(`UPDATE orders SET status = ?, updatedAt = ? ${extra} WHERE id = ? OR orderId = ?`).run(status, nowIso, req.params.id, req.params.id);
+    db.prepare(`
+      UPDATE orders 
+      SET status = ?, statusNotes = ?, updatedAt = ?, version = ?, history = ?, actorName = ? ${extra}
+      WHERE id = ? OR orderId = ?
+    `).run(status, statusNotes ? sanitizeInput(statusNotes) : order.statusNotes, nowIso, newVersion, JSON.stringify(historyArr), actor, req.params.id, req.params.id);
+
     const updated = db.prepare('SELECT * FROM orders WHERE id = ? OR orderId = ?').get(req.params.id, req.params.id);
 
     // Live update Google Drive Excel workbook
@@ -455,14 +529,23 @@ app.patch('/api/orders/:id/archive', requireAdmin, (req, res) => {
 
 app.delete('/api/orders/:id', requireAdmin, (req, res) => {
   try {
-    db.prepare('DELETE FROM orders WHERE id = ? OR orderId = ?').run(req.params.id, req.params.id);
+    const nowIso = new Date().toISOString();
+    // [Vulnerability Guard] Soft Delete Only (Never permanently wipe live orders)
+    db.prepare('UPDATE orders SET isDeleted = 1, deletedAt = ?, updatedAt = ? WHERE id = ? OR orderId = ?')
+      .run(nowIso, nowIso, req.params.id, req.params.id);
+
+    const softDeleted = db.prepare('SELECT * FROM orders WHERE id = ? OR orderId = ?').get(req.params.id, req.params.id);
+    if (softDeleted) {
+      pushOrderToTurso(softDeleted).catch(() => {});
+    }
+
     syncAllToGoogleDrive().catch(err => console.warn('[GDrive Sync on Delete Notice]:', err.message));
     broadcastEvent({
       type: 'ORDER_DELETED',
       orderId: req.params.id
     });
 
-    res.json({ success: true, message: 'Order deleted successfully' });
+    res.json({ success: true, message: 'Order archived and removed from active ledger' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -501,7 +584,7 @@ app.post('/api/gdrive/import-clinics', requireAdmin, (req, res) => {
 
 app.get('/api/export/excel', requireAdmin, async (req, res) => {
   try {
-    const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
+    const orders = db.prepare('SELECT * FROM orders WHERE isDeleted = 0 ORDER BY id DESC').all();
     const clinics = db.prepare('SELECT * FROM clinics ORDER BY clinicName ASC').all();
     const wb = await generateOrdersExcel(orders, clinics);
     const filename = `Hesyra-Crown-Scan-Orders-${new Date().toISOString().slice(0, 10)}.xlsx`;
@@ -526,24 +609,24 @@ app.get('/api/stats', (req, res) => {
     const nowIso = now.toISOString();
     const todayStr = nowIso.slice(0, 10);
 
-    const totalToday = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders WHERE createdAt >= ?").get(`${todayStr}T00:00:00.000Z`);
-    const totalOverall = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders").get();
+    const totalToday = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders WHERE isDeleted = 0 AND createdAt >= ?").get(`${todayStr}T00:00:00.000Z`);
+    const totalOverall = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders WHERE isDeleted = 0").get();
     
     // Active cases: within 48h SLA and not dispatched/delivered/cancelled
-    const activeCases = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE (isArchived = 0 AND deliveryDeadline >= ?) AND status NOT IN ('Dispatched', 'Delivered', 'Cancelled')").get(nowIso);
+    const activeCases = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE isDeleted = 0 AND (isArchived = 0 AND deliveryDeadline >= ?) AND status NOT IN ('Dispatched', 'Delivered', 'Cancelled')").get(nowIso);
     
     // Archived cases: past 48 hours or marked archived
-    const archivedCases = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE (isArchived = 1 OR deliveryDeadline < ?)").get(nowIso);
+    const archivedCases = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE isDeleted = 0 AND (isArchived = 1 OR deliveryDeadline < ?)").get(nowIso);
 
     // Urgent cases: active orders strictly between 0 and 12 hours remaining
-    const activeOrders = db.prepare("SELECT deliveryDeadline FROM orders WHERE (isArchived = 0 AND deliveryDeadline >= ?) AND status NOT IN ('Dispatched', 'Delivered', 'Cancelled')").all(nowIso);
+    const activeOrders = db.prepare("SELECT deliveryDeadline FROM orders WHERE isDeleted = 0 AND (isArchived = 0 AND deliveryDeadline >= ?) AND status NOT IN ('Dispatched', 'Delivered', 'Cancelled')").all(nowIso);
     const urgentCount = activeOrders.filter(o => {
       const diffHours = (new Date(o.deliveryDeadline) - now) / (1000 * 60 * 60);
       return diffHours >= 0 && diffHours <= 12;
     }).length;
 
-    const crownsCount = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE primaryProduct LIKE '%Crown%'").get();
-    const dispatchedCount = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE status IN ('Dispatched', 'Delivered')").get();
+    const crownsCount = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE isDeleted = 0 AND primaryProduct LIKE '%Crown%'").get();
+    const dispatchedCount = db.prepare("SELECT COUNT(*) as cnt FROM orders WHERE isDeleted = 0 AND status IN ('Dispatched', 'Delivered')").get();
 
     res.json({
       success: true,
