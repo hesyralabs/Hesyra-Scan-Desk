@@ -77,7 +77,7 @@ async function loadOrders() {
 
   try {
     const p = new URLSearchParams();
-    p.set('archive', activeFilters.archive || 'active');
+    p.set('archive', activeFilters.archive || 'all');
     if (activeFilters.search) p.set('search', activeFilters.search);
     if (activeFilters.status !== 'all') p.set('status', activeFilters.status);
     if (activeFilters.clinicId !== 'all') p.set('clinicId', activeFilters.clinicId);
@@ -433,7 +433,7 @@ function setupLiveLedgerStream() {
             const orderId = data.orderId || o.orderId || '';
 
             // Real-time toast alert
-            showToast(`🚀 Live: ${tech} enrolled new scan: ${patient} (${orderId})`, 'success');
+            showToast(`Live Scan: ${tech} enrolled new scan for ${patient} (${orderId})`, 'success');
 
             // Refresh ledger and KPI cards immediately
             refreshDashboardStats();

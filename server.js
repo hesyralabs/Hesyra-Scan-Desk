@@ -51,7 +51,8 @@ let sseClients = [];
 
 app.get('/api/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.setHeader('Connection', 'keep-alive');
   if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
@@ -248,13 +249,13 @@ app.get('/api/orders', (req, res) => {
     if (datePreset === 'today') {
       const todayStr = now.toISOString().slice(0, 10);
       conditions.push("createdAt >= ?");
-      params.push(`${todayStr} 00:00:00`);
+      params.push(`${todayStr}T00:00:00.000Z`);
     } else if (datePreset === 'yesterday') {
       const y = new Date(now);
       y.setDate(y.getDate() - 1);
       const yStr = y.toISOString().slice(0, 10);
       conditions.push("createdAt >= ? AND createdAt <= ?");
-      params.push(`${yStr} 00:00:00`, `${yStr} 23:59:59`);
+      params.push(`${yStr}T00:00:00.000Z`, `${yStr}T23:59:59.999Z`);
     } else if (datePreset === 'last7') {
       const s = new Date(now);
       s.setDate(s.getDate() - 7);
@@ -379,6 +380,21 @@ app.post('/api/orders', upload.array('photos', 6), async (req, res) => {
       clinicName: savedOrder.clinicName,
       techName: savedOrder.techName || 'Valaya'
     });
+
+        // [Seed Auto-Backup] Persist newly created scan to seedData.json to survive cloud spin-downs
+    try {
+      const seedFile = path.join(__dirname, 'seedData.json');
+      if (fs.existsSync(seedFile)) {
+        const seed = JSON.parse(fs.readFileSync(seedFile, 'utf8'));
+        if (Array.isArray(seed.orders)) {
+          // Remove if duplicate orderId, then prepend
+          seed.orders = [savedOrder, ...seed.orders.filter(o => o.orderId !== savedOrder.orderId)];
+          fs.writeFileSync(seedFile, JSON.stringify(seed, null, 2), 'utf8');
+        }
+      }
+    } catch (seedErr) {
+      console.warn('[Seed Backup Warning]:', seedErr.message);
+    }
 
     res.status(201).json({ success: true, order: savedOrder });
   } catch (err) {
@@ -506,7 +522,7 @@ app.get('/api/stats', (req, res) => {
     const nowIso = now.toISOString();
     const todayStr = nowIso.slice(0, 10);
 
-    const totalToday = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders WHERE createdAt >= ?").get(`${todayStr} 00:00:00`);
+    const totalToday = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders WHERE createdAt >= ?").get(`${todayStr}T00:00:00.000Z`);
     const totalOverall = db.prepare("SELECT COUNT(*) as cnt, COALESCE(SUM(totalUnits), 0) as units FROM orders").get();
     
     // Active cases: within 48h SLA and not dispatched/delivered/cancelled
