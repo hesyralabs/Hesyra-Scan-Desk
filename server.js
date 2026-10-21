@@ -102,6 +102,8 @@ app.post('/api/auth/login', (req, res) => {
     if (!result.success) {
       return res.status(401).json(result);
     }
+    const maxAge = (rememberMe !== false) ? 30 * 24 * 3600 : 24 * 3600;
+    res.setHeader('Set-Cookie', `hesyra_auth_token=${result.token}; Path=/; Max-Age=${maxAge}; SameSite=Lax`);
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -128,6 +130,7 @@ app.post('/api/auth/logout', (req, res) => {
     token = authHeader.slice(7).trim();
   }
   if (token) destroySession(token);
+  res.setHeader('Set-Cookie', 'hesyra_auth_token=; Path=/; Max-Age=0');
   res.json({ success: true, message: 'Logged out successfully' });
 });
 

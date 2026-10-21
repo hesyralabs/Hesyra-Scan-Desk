@@ -42,6 +42,9 @@ window.fetch = async function(url, options = {}) {
   options.headers = options.headers || {};
 
   const token = localStorage.getItem('hesyra_auth_token');
+  if (token && typeof document !== 'undefined' && !document.cookie.includes('hesyra_auth_token=')) {
+    document.cookie = `hesyra_auth_token=${encodeURIComponent(token)}; path=/; max-age=2592000; SameSite=Lax`;
+  }
   if (token) {
     if (options.headers instanceof Headers) {
       if (!options.headers.has('Authorization')) {
@@ -62,6 +65,7 @@ window.fetch = async function(url, options = {}) {
   if (response.status === 401 && !url.includes('/api/auth/login')) {
     localStorage.removeItem('hesyra_auth_token');
     localStorage.removeItem('hesyra_user');
+    document.cookie = 'hesyra_auth_token=; path=/; max-age=0; SameSite=Lax';
     currentUser = null;
     window.currentUser = null;
     showLoginScreen('Your session has expired. Please sign in again.');

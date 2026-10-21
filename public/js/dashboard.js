@@ -526,14 +526,50 @@ window.switchToArchiveView = switchToArchiveView;
 
 
 function setupExcelExport() {
-  document.getElementById('btn-export-excel')?.addEventListener('click', () => {
+  document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
     if (window.currentUser?.role !== 'admin') {
       showToast('Permission Denied: Master database export is restricted to Central Lab Administrators.', 'error');
       return;
     }
     const token = localStorage.getItem('hesyra_auth_token') || '';
-    window.location.href = `/api/export/excel?token=${encodeURIComponent(token)}`;
-    showToast('Downloading 48-Hour Case Ledger (.xlsx)...', 'success');
+    const btn = document.getElementById('btn-export-excel');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="inline-block animate-spin mr-1">⌛</span> Exporting...';
+    }
+    showToast('Generating 48-Hour Case Ledger (.xlsx)...', 'info');
+
+    try {
+      const res = await fetch(`/api/export/excel?token=${encodeURIComponent(token)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Export failed with status ' + res.status }));
+        throw new Error(err.error || 'Server rejected export request');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      a.download = `Hesyra-Crown-Scan-Orders-${today}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      showToast('Case Ledger downloaded successfully!', 'success');
+    } catch (err) {
+      showToast(`Export failed: ${err.message}`, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        if (window.refreshIcons) window.refreshIcons();
+      }
+    }
   });
 }
 

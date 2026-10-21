@@ -204,6 +204,9 @@ function requireAuth(req, res, next) {
     token = authHeader.slice(7).trim();
   } else if (req.query && req.query.token) {
     token = req.query.token;
+  } else if (req.headers && req.headers.cookie) {
+    const match = req.headers.cookie.match(/hesyra_auth_token=([^;]+)/);
+    if (match) token = decodeURIComponent(match[1].trim());
   }
 
   if (!token) {
